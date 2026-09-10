@@ -1,0 +1,101 @@
+import {
+  arrayUnion,
+  collection,
+  deleteDoc,
+  doc,
+  getDoc,
+  getDocs,
+  onSnapshot,
+  orderBy,
+  query,
+  setDoc,
+  updateDoc,
+  type Unsubscribe,
+} from 'firebase/firestore';
+
+import { db } from '@/lib/firebase';
+import type { Person } from '@/types/models';
+
+// uid is always passed explicitly rather than read from the current auth session,
+// so these functions stay easy to call from anywhere (and to test) without hidden
+// dependencies on auth state.
+
+function peopleCollection(uid: string) {
+  return collection(db, 'users', uid, 'people');
+}
+
+function personDoc(uid: string, personId: string) {
+  return doc(db, 'users', uid, 'people', personId);
+}
+
+export type NewPerson = Omit<Person, 'id' | 'createdAt' | 'updatedAt'>;
+
+export async function createPerson(uid: string, input: NewPerson): Promise<Person> {
+  const ref = doc(peopleCollection(uid));
+  const now = new Date().toISOString();
+  const person: Person = { ...input, id: ref.id, createdAt: now, updatedAt: now };
+  await setDoc(ref, person);
+  return person;
+}
+
+export async function getPerson(uid: string, personId: string): Promise<Person | null> {
+  const snap = await getDoc(personDoc(uid, personId));
+  return snap.exists() ? (snap.data() as Person) : null;
+}
+
+export async function listPeople(uid: string): Promise<Person[]> {
+  const snap = await getDocs(query(peopleCollection(uid), orderBy('name')));
+  return snap.docs.map((d) => d.data() as Person);
+}
+
+export function subscribeToPeople(uid: string, onChange: (people: Person[]) => void): Unsubscribe {
+  return onSnapshot(query(peopleCollection(uid), orderBy('name')), (snap) => {
+    onChange(snap.docs.map((d) => d.data() as Person));
+  });
+}
+
+export async function updatePerson(
+  uid: string,
+  personId: string,
+  patch: Partial<Omit<Person, 'id' | 'createdAt'>>,
+): Promise<void> {
+  await updateDoc(personDoc(uid, personId), { ...patch, updatedAt: new Date().toISOString() });
+}
+
+export async function deletePerson(uid: string, personId: string): Promise<void> {
+  await deleteDoc(personDoc(uid, personId));
+}
+
+// Array fields need arrayUnion rather than a plain patch through updatePerson,
+// which would replace the whole array instead of appending to it.
+
+export async function addPersonNote(
+  uid: string,
+  personId: string,
+  note: { date: string; text: string },
+): Promise<void> {
+  await updateDoc(personDoc(uid, personId), {
+    notes: arrayUnion(note),
+    lastContacted: note.date,
+    updatedAt: new Date().toISOString(),
+  });
+}
+
+export async function addPersonFacts(uid: string, personId: string, facts: string[]): Promise<void> {
+  if (facts.length === 0) return;
+  await updateDoc(personDoc(uid, personId), {
+    facts: arrayUnion(...facts),
+    updatedAt: new Date().toISOString(),
+  });
+}
+
+export async function addPersonImportantDate(
+  uid: string,
+  personId: string,
+  importantDate: { label: string; date: string },
+): Promise<void> {
+  await updateDoc(personDoc(uid, personId), {
+    importantDates: arrayUnion(importantDate),
+    updatedAt: new Date().toISOString(),
+  });
+}
