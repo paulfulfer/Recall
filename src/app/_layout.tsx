@@ -5,19 +5,18 @@ import {
   Lora_700Bold,
   useFonts,
 } from '@expo-google-fonts/lora';
-import { DarkTheme, DefaultTheme, ThemeProvider as NavigationThemeProvider } from 'expo-router';
+import { DarkTheme, DefaultTheme, Stack, ThemeProvider as NavigationThemeProvider } from 'expo-router';
 import * as SplashScreen from 'expo-splash-screen';
 import { useEffect } from 'react';
 import { useColorScheme } from 'react-native';
 
 import { AnimatedSplashOverlay } from '@/components/animated-icon';
-import AppTabs from '@/components/app-tabs';
+import { AuthProvider, useAuth } from '@/providers/auth-provider';
 import { ThemeProvider as RecallThemeProvider } from '@/providers/theme-provider';
 
 SplashScreen.preventAutoHideAsync();
 
-export default function TabLayout() {
-  const colorScheme = useColorScheme();
+export default function RootLayout() {
   const [fontsLoaded] = useFonts({
     Lora_400Regular,
     Lora_500Medium,
@@ -25,18 +24,37 @@ export default function TabLayout() {
     Lora_700Bold,
   });
 
-  useEffect(() => {
-    if (fontsLoaded) SplashScreen.hideAsync();
-  }, [fontsLoaded]);
+  return (
+    <AuthProvider>
+      <RecallThemeProvider>
+        <RootLayoutNav fontsLoaded={fontsLoaded} />
+      </RecallThemeProvider>
+    </AuthProvider>
+  );
+}
 
-  if (!fontsLoaded) return null;
+function RootLayoutNav({ fontsLoaded }: { fontsLoaded: boolean }) {
+  const colorScheme = useColorScheme();
+  const { user, initializing } = useAuth();
+  const ready = fontsLoaded && !initializing;
+
+  useEffect(() => {
+    if (ready) SplashScreen.hideAsync();
+  }, [ready]);
+
+  if (!ready) return null;
 
   return (
-    <RecallThemeProvider>
-      <NavigationThemeProvider value={colorScheme === 'dark' ? DarkTheme : DefaultTheme}>
-        <AnimatedSplashOverlay />
-        <AppTabs />
-      </NavigationThemeProvider>
-    </RecallThemeProvider>
+    <NavigationThemeProvider value={colorScheme === 'dark' ? DarkTheme : DefaultTheme}>
+      <AnimatedSplashOverlay />
+      <Stack screenOptions={{ headerShown: false }}>
+        <Stack.Protected guard={!!user}>
+          <Stack.Screen name="(app)" />
+        </Stack.Protected>
+        <Stack.Protected guard={!user}>
+          <Stack.Screen name="sign-in" />
+        </Stack.Protected>
+      </Stack>
+    </NavigationThemeProvider>
   );
 }

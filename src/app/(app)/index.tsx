@@ -1,5 +1,5 @@
 import * as Device from 'expo-device';
-import { Platform, StyleSheet } from 'react-native';
+import { Platform, Pressable, StyleSheet } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
 import { AnimatedIcon } from '@/components/animated-icon';
@@ -8,6 +8,7 @@ import { ThemedText } from '@/components/themed-text';
 import { ThemedView } from '@/components/themed-view';
 import { WebBadge } from '@/components/web-badge';
 import { BottomTabInset, MaxContentWidth, Spacing } from '@/constants/theme';
+import { useAuth } from '@/providers/auth-provider';
 
 function getDevMenuHint() {
   if (Platform.OS === 'web') {
@@ -29,6 +30,7 @@ function getDevMenuHint() {
 }
 
 export default function HomeScreen() {
+  const { signOut, user } = useAuth();
   return (
     <ThemedView style={styles.container}>
       <SafeAreaView style={styles.safeArea}>
@@ -37,6 +39,11 @@ export default function HomeScreen() {
           <ThemedText type="title" style={styles.title}>
             Welcome to&nbsp;Expo
           </ThemedText>
+          {/* TEMP: real sign-out lands in the Settings screen (build phase 14) */}
+          <ThemedText type="small">{user?.email}</ThemedText>
+          <Pressable onPress={() => signOut()}>
+            <ThemedText type="link">Sign out</ThemedText>
+          </Pressable>
         </ThemedView>
 
         <ThemedText type="code" style={styles.code}>
