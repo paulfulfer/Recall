@@ -12,6 +12,7 @@ import {
   persistentLocalCache,
   persistentMultipleTabManager,
 } from "firebase/firestore";
+import { type Functions, getFunctions } from "firebase/functions";
 import { type FirebaseStorage, getStorage } from "firebase/storage";
 
 const firebaseConfig = {
@@ -53,3 +54,5 @@ export const db: Firestore = initializeFirestore(firebaseApp, {
 });
 
 export const storage: FirebaseStorage = getStorage(firebaseApp);
+
+export const functions: Functions = getFunctions(firebaseApp);
