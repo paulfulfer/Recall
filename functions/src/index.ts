@@ -13,9 +13,9 @@ initializeApp();
 //   npx firebase functions:secrets:set GEMINI_API_KEY
 const GEMINI_API_KEY = defineSecret("GEMINI_API_KEY");
 
-// gemini-2.5-flash (spec's original assumption) now 404s as "no longer available to new
-// users" — Google's own error message points to this replacement.
-const TRANSCRIBE_MODEL = "gemini-3.6-flash";
+// Purpose-built speech-to-text model (Google, Aug 2026) — better fit than a general
+// multimodal "flash" model for the verbatim-transcript job in spec section 4 step 4.
+const TRANSCRIBE_MODEL = "gemini-3.5-transcribe";
 
 // Build-phase-6 smoke test: confirms billing (Blaze), the secret is wired up, and the
 // deployed function can actually reach Gemini — before any real transcribe/extract logic
@@ -79,36 +79,48 @@ export const transcribeCapture = onCall<TranscribeCaptureRequest>(
       throw new HttpsError("permission-denied", "Not allowed.");
     }
 
-    let base64Audio: string;
+    let audioBytes: Buffer;
     try {
-      const [audioBytes] = await getStorage().bucket().file(audioPath).download();
-      base64Audio = audioBytes.toString("base64");
+      [audioBytes] = await getStorage().bucket().file(audioPath).download();
     } catch (err) {
       logger.error("transcribeCapture: audio download failed", { captureId, err });
       throw new HttpsError("not-found", "Could not read the uploaded audio.");
     }
 
+    const ai = new GoogleGenAI({ apiKey: GEMINI_API_KEY.value() });
     let transcript: string;
+    let uploadedFileName: string | undefined;
     try {
-      const ai = new GoogleGenAI({ apiKey: GEMINI_API_KEY.value() });
-      const response = await ai.models.generateContent({
+      // gemini-3.5-transcribe takes a Files API reference rather than inline base64 data.
+      const blob = new Blob([audioBytes], { type: mimeType });
+      const file = await ai.files.upload({ file: blob, config: { mimeType } });
+      uploadedFileName = file.name;
+
+      // Short clips (<=60s) process almost immediately, but the Files API is async —
+      // wait for ACTIVE before referencing the file in a generation request.
+      let activeFile = file;
+      for (let attempt = 0; activeFile.state === "PROCESSING" && attempt < 10; attempt += 1) {
+        await new Promise((resolve) => setTimeout(resolve, 1000));
+        activeFile = await ai.files.get({ name: file.name! });
+      }
+      if (activeFile.state !== "ACTIVE") {
+        throw new Error(`Uploaded file did not become active (state: ${activeFile.state}).`);
+      }
+
+      const interaction = await ai.interactions.create({
         model: TRANSCRIBE_MODEL,
-        contents: [
-          {
-            role: "user",
-            parts: [
-              { inlineData: { mimeType, data: base64Audio } },
-              {
-                text: "Transcribe this audio verbatim. Return only the transcript text, with no additional commentary, labels, or formatting. If the audio is silent or unintelligible, return an empty string.",
-              },
-            ],
-          },
-        ],
+        input: [{ type: "audio", uri: activeFile.uri!, mime_type: mimeType }],
       });
-      transcript = response.text?.trim() ?? "";
+      transcript = interaction.output_text?.trim() ?? "";
     } catch (err) {
       logger.error("transcribeCapture: Gemini call failed", { captureId, err });
       throw new HttpsError("internal", "Transcription failed.");
+    } finally {
+      if (uploadedFileName) {
+        await ai.files.delete({ name: uploadedFileName }).catch((err) => {
+          logger.warn("transcribeCapture: failed to clean up uploaded file", { captureId, err });
+        });
+      }
     }
 
     await getFirestore().doc(`users/${uid}/captures/${captureId}`).update({ transcript });
