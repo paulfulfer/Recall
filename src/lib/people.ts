@@ -89,6 +89,14 @@ export async function addPersonFacts(uid: string, personId: string, facts: strin
   });
 }
 
+// Spec section 4 step 7: keyword-only matching (no fuzzy/vector search) is enough at
+// personal scale — surfaces candidates for the confirm screen's "attach to existing" suggestion.
+export function matchPeopleByName(people: Person[], name: string): Person[] {
+  const needle = name.trim().toLowerCase();
+  if (!needle) return [];
+  return people.filter((p) => p.name.trim().toLowerCase().includes(needle));
+}
+
 export async function addPersonImportantDate(
   uid: string,
   personId: string,

@@ -1,7 +1,8 @@
-import { useMemo } from 'react';
-import { Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
+import { useMemo, useState } from 'react';
+import { Pressable, ScrollView, StyleSheet, Text, TextInput, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
+import { CaptureConfirm } from '@/components/capture-confirm';
 import { RecordButton } from '@/components/record-button';
 import { LORA, type ThemeTokens } from '@/constants/theme';
 import { useCaptureRecorder } from '@/hooks/use-capture-recorder';
@@ -16,8 +17,8 @@ function stageLabel(stage: string) {
       return 'Uploading...';
     case 'transcribing':
       return 'Transcribing...';
-    case 'done':
-      return 'Done';
+    case 'extracting':
+      return 'Extracting details...';
     case 'error':
       return 'Something went wrong';
     default:
@@ -35,10 +36,39 @@ function RecordHome({ uid, email }: { uid: string; email: string | null }) {
   const { tokens } = useAppTheme();
   const styles = useMemo(() => createStyles(tokens), [tokens]);
   const { signOut } = useAuth();
-  const { stage, transcript, error, isRecording, durationMillis, startRecording, stopRecording } =
-    useCaptureRecorder(uid);
+  const {
+    stage,
+    captureId,
+    transcript,
+    extracted,
+    error,
+    isRecording,
+    durationMillis,
+    startRecording,
+    stopRecording,
+    submitTypedCapture,
+    reset,
+  } = useCaptureRecorder(uid);
 
-  const busy = stage === 'uploading' || stage === 'transcribing';
+  const [typedText, setTypedText] = useState('');
+
+  if (stage === 'ready' && captureId && extracted) {
+    return (
+      <CaptureConfirm
+        uid={uid}
+        captureId={captureId}
+        transcript={transcript}
+        initialExtracted={extracted}
+        onDone={() => {
+          setTypedText('');
+          reset();
+        }}
+        onCancel={reset}
+      />
+    );
+  }
+
+  const busy = stage === 'uploading' || stage === 'transcribing' || stage === 'extracting';
   const seconds = Math.floor(durationMillis / 1000);
 
   return (
@@ -58,12 +88,24 @@ function RecordHome({ uid, email }: { uid: string; email: string | null }) {
 
         {error ? <Text style={styles.error}>{error}</Text> : null}
 
-        {transcript !== null ? (
-          <View style={styles.transcriptCard}>
-            <Text style={styles.transcriptLabel}>Transcript</Text>
-            <Text style={styles.transcriptText}>{transcript || '(no speech detected)'}</Text>
-          </View>
-        ) : null}
+        <View style={styles.typedCard}>
+          <Text style={styles.typedLabel}>Or type it instead</Text>
+          <TextInput
+            value={typedText}
+            onChangeText={setTypedText}
+            placeholder="Met Sam at the coffee shop, works at..."
+            placeholderTextColor={tokens.textTertiary}
+            style={styles.typedInput}
+            multiline
+            editable={!busy}
+          />
+          <Pressable
+            onPress={() => submitTypedCapture(typedText)}
+            disabled={busy || !typedText.trim()}
+            style={[styles.typedButton, (busy || !typedText.trim()) && styles.typedButtonDisabled]}>
+            <Text style={styles.typedButtonText}>Log it</Text>
+          </Pressable>
+        </View>
 
         {/* TEMP: real sign-out lands in the Settings screen (build phase 14) */}
         <Text style={styles.email}>{email}</Text>
@@ -80,27 +122,44 @@ function createStyles(t: ThemeTokens) {
     flex: { flex: 1, backgroundColor: t.bg },
     content: { flexGrow: 1, alignItems: 'center', padding: 24, gap: 20 },
     title: { fontFamily: LORA.bold, fontSize: 26, letterSpacing: -0.3, color: t.textPrimary, marginTop: 12 },
-    recordSection: { alignItems: 'center', gap: 12, marginTop: 40 },
+    recordSection: { alignItems: 'center', gap: 12, marginTop: 24 },
     stageLabel: { fontFamily: LORA.medium, fontSize: 14, color: t.textSecondary },
     timer: { fontFamily: LORA.regular, fontSize: 12, color: t.textTertiary },
     error: { fontFamily: LORA.regular, fontSize: 13, color: t.reminderText, textAlign: 'center' },
-    transcriptCard: {
+    typedCard: {
       width: '100%',
       maxWidth: 420,
       backgroundColor: t.card,
       borderRadius: 22,
       padding: 16,
-      gap: 8,
+      gap: 10,
     },
-    transcriptLabel: {
+    typedLabel: {
       fontFamily: LORA.semiBold,
       fontSize: 11,
       letterSpacing: 0.44,
       textTransform: 'uppercase',
       color: t.textTertiary,
     },
-    transcriptText: { fontFamily: LORA.regular, fontSize: 14, lineHeight: 21.7, color: t.textPrimary },
-    email: { fontFamily: LORA.regular, fontSize: 12, color: t.textTertiary, marginTop: 24 },
+    typedInput: {
+      backgroundColor: t.inputBg,
+      borderRadius: 12,
+      padding: 12,
+      minHeight: 72,
+      fontFamily: LORA.regular,
+      fontSize: 14,
+      color: t.textPrimary,
+      textAlignVertical: 'top',
+    },
+    typedButton: {
+      backgroundColor: t.pillPrimaryBg,
+      borderRadius: 999,
+      paddingVertical: 12,
+      alignItems: 'center',
+    },
+    typedButtonDisabled: { opacity: 0.5 },
+    typedButtonText: { fontFamily: LORA.semiBold, fontSize: 14, color: t.pillPrimaryText },
+    email: { fontFamily: LORA.regular, fontSize: 12, color: t.textTertiary, marginTop: 8 },
     signOut: { fontFamily: LORA.medium, fontSize: 13, color: t.contactLink },
   });
 }
