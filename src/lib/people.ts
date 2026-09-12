@@ -54,6 +54,16 @@ export function subscribeToPeople(uid: string, onChange: (people: Person[]) => v
   });
 }
 
+export function subscribeToPerson(
+  uid: string,
+  personId: string,
+  onChange: (person: Person | null) => void,
+): Unsubscribe {
+  return onSnapshot(personDoc(uid, personId), (snap) => {
+    onChange(snap.exists() ? (snap.data() as Person) : null);
+  });
+}
+
 export async function updatePerson(
   uid: string,
   personId: string,

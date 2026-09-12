@@ -20,9 +20,10 @@ export default function AppTabs() {
         />
       </NativeTabs.Trigger>
 
-      <NativeTabs.Trigger name="explore">
-        <NativeTabs.Trigger.Label>Explore</NativeTabs.Trigger.Label>
+      <NativeTabs.Trigger name="people">
+        <NativeTabs.Trigger.Label>People</NativeTabs.Trigger.Label>
         <NativeTabs.Trigger.Icon
+          sf="person.2.fill"
           src={require('@/assets/images/tabIcons/explore.png')}
           renderingMode="template"
         />
