@@ -52,7 +52,10 @@ export function CustomTabList(props: TabListProps) {
   const colors = Colors[scheme === 'unspecified' ? 'light' : scheme];
 
   return (
-    <View {...props} style={styles.tabListContainer}>
+    // box-none: this outer wrapper only exists to center/position the pill below and
+    // spans the full page width — without it, its transparent margins swallow clicks
+    // meant for whatever's underneath, e.g. a button in the corner of the screen content.
+    <View {...props} style={styles.tabListContainer} pointerEvents="box-none">
       <ThemedView type="backgroundElement" style={styles.innerContainer}>
         <ThemedText type="smallBold" style={styles.brandText}>
           Recall

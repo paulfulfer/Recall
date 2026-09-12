@@ -46,6 +46,12 @@
         {
           "calendarPermission": "Recall checks your calendar to anchor captures to what event you were at."
         }
+      ],
+      [
+        "expo-image-picker",
+        {
+          "photosPermission": "Recall uses your photos to add a picture to a person's profile."
+        }
       ]
     ],
     "experiments": {

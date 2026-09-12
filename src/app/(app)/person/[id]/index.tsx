@@ -78,6 +78,9 @@ function PersonDetail({ uid, personId }: { uid: string; personId: string }) {
           <Pressable onPress={() => router.back()} hitSlop={12}>
             <Text style={styles.back}>‹ Back</Text>
           </Pressable>
+          <Pressable onPress={() => router.push(`/person/${personId}/edit`)} hitSlop={12}>
+            <Text style={styles.back}>Edit</Text>
+          </Pressable>
         </View>
 
         <View style={styles.profileHeader}>
@@ -86,6 +89,7 @@ function PersonDetail({ uid, personId }: { uid: string; personId: string }) {
             category={person.category}
             size={LAYOUT.avatarDetailSize}
             radius={LAYOUT.avatarDetailRadius}
+            photoUrl={person.photoUrl}
           />
           <View style={styles.profileText}>
             <Text style={styles.name}>{person.name}</Text>
@@ -196,7 +200,7 @@ function createStyles(t: ThemeTokens) {
     flex: { flex: 1, backgroundColor: t.bg },
     flex1: { flex: 1 },
     content: { padding: 16, gap: 12, paddingBottom: 40 },
-    headerRow: { flexDirection: 'row' },
+    headerRow: { flexDirection: 'row', justifyContent: 'space-between' },
     back: { fontFamily: LORA.medium, fontSize: 14, color: t.contactLink },
     notFound: { fontFamily: LORA.regular, fontSize: 14, color: t.textSecondary, textAlign: 'center', marginTop: 40 },
     profileHeader: { flexDirection: 'row', alignItems: 'center', gap: 14, marginBottom: 4 },

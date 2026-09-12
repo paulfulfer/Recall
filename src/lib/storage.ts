@@ -19,3 +19,12 @@ export async function uploadCaptureAudio(
   const audioUrl = await getDownloadURL(storageRef);
   return { audioUrl, audioPath };
 }
+
+// Spec section 2: photos live at users/{uid}/photos/{personId}.jpg.
+export async function uploadPersonPhoto(uid: string, personId: string, localUri: string): Promise<string> {
+  const response = await fetch(localUri);
+  const blob = await response.blob();
+  const storageRef = ref(storage, `users/${uid}/photos/${personId}.jpg`);
+  await uploadBytes(storageRef, blob, { contentType: "image/jpeg" });
+  return getDownloadURL(storageRef);
+}

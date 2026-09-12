@@ -1,6 +1,7 @@
 import {
   arrayUnion,
   collection,
+  deleteField,
   deleteDoc,
   doc,
   getDoc,
@@ -10,6 +11,7 @@ import {
   query,
   setDoc,
   updateDoc,
+  type FieldValue,
   type Unsubscribe,
 } from 'firebase/firestore';
 
@@ -74,6 +76,23 @@ export async function updatePerson(
 
 export async function deletePerson(uid: string, personId: string): Promise<void> {
   await deleteDoc(personDoc(uid, personId));
+}
+
+type OptionalTextField = 'phone' | 'email' | 'instagram' | 'linkedin' | 'birthday' | 'giftIdeas';
+
+// The add/edit screen must be able to clear a previously-set optional field back to
+// empty, which a plain updateDoc patch can't express (Firestore rejects `undefined`
+// values) — an empty input here removes the field with deleteField() instead.
+export async function savePersonOptionalFields(
+  uid: string,
+  personId: string,
+  fields: Partial<Record<OptionalTextField, string>>,
+): Promise<void> {
+  const patch: Record<string, string | FieldValue> = { updatedAt: new Date().toISOString() };
+  for (const [key, value] of Object.entries(fields)) {
+    patch[key] = value && value.trim() ? value.trim() : deleteField();
+  }
+  await updateDoc(personDoc(uid, personId), patch);
 }
 
 // Array fields need arrayUnion rather than a plain patch through updatePerson,

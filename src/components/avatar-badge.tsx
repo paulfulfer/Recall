@@ -1,3 +1,4 @@
+import { Image } from 'expo-image';
 import { StyleSheet, Text, View } from 'react-native';
 
 import { LORA } from '@/constants/theme';
@@ -10,6 +11,7 @@ interface AvatarBadgeProps {
   size: number;
   radius: number;
   fontSize?: number;
+  photoUrl?: string;
 }
 
 function initialsFor(name: string) {
@@ -21,8 +23,19 @@ function initialsFor(name: string) {
 
 // Spec section 7: rounded-square initials badge, background = accent at ~12% opacity,
 // text = full accent color.
-export function AvatarBadge({ name, category, size, radius, fontSize }: AvatarBadgeProps) {
+export function AvatarBadge({ name, category, size, radius, fontSize, photoUrl }: AvatarBadgeProps) {
   const accent = useCategoryAccent(category);
+
+  if (photoUrl) {
+    return (
+      <Image
+        source={{ uri: photoUrl }}
+        style={{ width: size, height: size, borderRadius: radius }}
+        contentFit="cover"
+      />
+    );
+  }
+
   return (
     <View
       style={[

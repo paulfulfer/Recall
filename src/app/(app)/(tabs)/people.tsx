@@ -64,7 +64,12 @@ function PeopleList({ uid }: { uid: string }) {
   return (
     <SafeAreaView style={styles.flex} edges={['top']}>
       <View style={styles.header}>
-        <Text style={styles.title}>People</Text>
+        <View style={styles.titleRow}>
+          <Text style={styles.title}>People</Text>
+          <Pressable onPress={() => router.push('/person/new')} style={styles.addButton}>
+            <Text style={styles.addButtonText}>+ New</Text>
+          </Pressable>
+        </View>
         <TextInput
           value={search}
           onChangeText={setSearch}
@@ -102,7 +107,13 @@ function PeopleList({ uid }: { uid: string }) {
         ListEmptyComponent={<Text style={styles.empty}>No one here yet.</Text>}
         renderItem={({ item }) => (
           <Pressable style={styles.row} onPress={() => router.push(`/person/${item.id}`)}>
-            <AvatarBadge name={item.name} category={item.category} size={LAYOUT.avatarListSize} radius={LAYOUT.avatarListRadius} />
+            <AvatarBadge
+              name={item.name}
+              category={item.category}
+              size={LAYOUT.avatarListSize}
+              radius={LAYOUT.avatarListRadius}
+              photoUrl={item.photoUrl}
+            />
             <View style={styles.rowMain}>
               <Text style={styles.name} numberOfLines={1}>{item.name}</Text>
               <CategoryTag category={item.category} />
@@ -177,7 +188,10 @@ function createStyles(t: ThemeTokens) {
   return StyleSheet.create({
     flex: { flex: 1, backgroundColor: t.bg },
     header: { paddingHorizontal: 16, paddingTop: 8, gap: 10 },
+    titleRow: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' },
     title: { fontFamily: LORA.bold, fontSize: 26, letterSpacing: -0.3, color: t.textPrimary },
+    addButton: { backgroundColor: t.pillPrimaryBg, borderRadius: 999, paddingHorizontal: 14, paddingVertical: 8 },
+    addButtonText: { fontFamily: LORA.medium, fontSize: 13, color: t.pillPrimaryText },
     search: {
       backgroundColor: t.inputBg,
       borderRadius: 12,
