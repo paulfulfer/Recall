@@ -9,6 +9,7 @@ export default function AppLayout() {
       <Stack.Screen name="person/[id]/index" />
       <Stack.Screen name="person/[id]/edit" options={{ presentation: 'modal' }} />
       <Stack.Screen name="person/new" options={{ presentation: 'modal' }} />
+      <Stack.Screen name="capture/[id]" options={{ presentation: 'modal' }} />
     </Stack>
   );
 }

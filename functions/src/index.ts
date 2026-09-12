@@ -218,9 +218,13 @@ export const extractCapture = onCall<ExtractCaptureRequest>(
           },
         });
         const parsed = JSON.parse(response.text ?? "{}");
+        const name = typeof parsed.name === "string" ? parsed.name.trim() : "";
+        const category = CATEGORIES.includes(parsed.category) ? parsed.category : undefined;
         extracted = {
-          name: typeof parsed.name === "string" && parsed.name.trim() ? parsed.name.trim() : undefined,
-          category: CATEGORIES.includes(parsed.category) ? parsed.category : undefined,
+          // Firestore rejects `undefined` field values outright — omit these keys
+          // entirely rather than setting them to undefined when nothing was extracted.
+          ...(name ? { name } : {}),
+          ...(category ? { category } : {}),
           facts: Array.isArray(parsed.facts) ? parsed.facts.filter((f: unknown) => typeof f === "string") : [],
           dates: Array.isArray(parsed.dates)
             ? parsed.dates.filter(

@@ -28,6 +28,15 @@ export default function AppTabs() {
           renderingMode="template"
         />
       </NativeTabs.Trigger>
+
+      <NativeTabs.Trigger name="unfiled">
+        <NativeTabs.Trigger.Label>Unfiled</NativeTabs.Trigger.Label>
+        <NativeTabs.Trigger.Icon
+          sf="tray.full.fill"
+          src={require('@/assets/images/tabIcons/home.png')}
+          renderingMode="template"
+        />
+      </NativeTabs.Trigger>
     </NativeTabs>
   );
 }

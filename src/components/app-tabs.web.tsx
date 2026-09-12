@@ -27,6 +27,9 @@ export default function AppTabs() {
           <TabTrigger name="people" href="/people" asChild>
             <TabButton>People</TabButton>
           </TabTrigger>
+          <TabTrigger name="unfiled" href="/unfiled" asChild>
+            <TabButton>Unfiled</TabButton>
+          </TabTrigger>
         </CustomTabList>
       </TabList>
     </Tabs>
