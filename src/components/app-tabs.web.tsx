@@ -30,6 +30,9 @@ export default function AppTabs() {
           <TabTrigger name="unfiled" href="/unfiled" asChild>
             <TabButton>Unfiled</TabButton>
           </TabTrigger>
+          <TabTrigger name="search" href="/search" asChild>
+            <TabButton>Search</TabButton>
+          </TabTrigger>
         </CustomTabList>
       </TabList>
     </Tabs>

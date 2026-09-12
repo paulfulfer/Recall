@@ -68,6 +68,14 @@ export function subscribeToCapturesForPerson(
   );
 }
 
+// Spec section 8: search runs client-side over the full capture set — personal-scale
+// data makes a plain cached subscription sufficient, no search service needed.
+export function subscribeToCaptures(uid: string, onChange: (captures: Capture[]) => void): Unsubscribe {
+  return onSnapshot(query(capturesCollection(uid), orderBy('createdAt', 'desc')), (snap) =>
+    onChange(snap.docs.map((d) => d.data() as Capture)),
+  );
+}
+
 export async function listOrphanCaptures(uid: string): Promise<Capture[]> {
   const snap = await getDocs(
     query(capturesCollection(uid), where('personId', '==', null), orderBy('createdAt', 'desc')),
