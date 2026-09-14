@@ -48,6 +48,7 @@ function RecordHome({ uid }: { uid: string }) {
     isRecording,
     durationMillis,
     metering,
+    canRecord,
     startRecording,
     stopRecording,
     submitTypedCapture,
@@ -114,7 +115,7 @@ function RecordHome({ uid }: { uid: string }) {
         ) : null}
 
         <View style={styles.typedCard}>
-          <Text style={styles.typedLabel}>Or type it instead</Text>
+          <Text style={styles.typedLabel}>{canRecord ? 'Or type it instead' : 'Log what happened'}</Text>
           <TextInput
             value={typedText}
             onChangeText={setTypedText}
@@ -133,18 +134,20 @@ function RecordHome({ uid }: { uid: string }) {
         </View>
       </ScrollView>
 
-      <View style={styles.recordSection}>
-        <RecordButton
-          recording={isRecording}
-          disabled={busy}
-          metering={metering}
-          onPress={() => (isRecording ? stopRecording() : startRecording())}
-        />
-        <View style={styles.stageRow}>
-          <Text style={styles.stageLabel}>{stageLabel(stage)}</Text>
+      {canRecord && (
+        <View style={styles.recordSection}>
+          <RecordButton
+            recording={isRecording}
+            disabled={busy}
+            metering={metering}
+            onPress={() => (isRecording ? stopRecording() : startRecording())}
+          />
+          <View style={styles.stageRow}>
+            <Text style={styles.stageLabel}>{stageLabel(stage)}</Text>
+          </View>
+          {isRecording && <Text style={styles.timer}>{seconds}s / 60s</Text>}
         </View>
-        {isRecording && <Text style={styles.timer}>{seconds}s / 60s</Text>}
-      </View>
+      )}
     </SafeAreaView>
   );
 }

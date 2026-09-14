@@ -70,7 +70,8 @@
     ],
     "experiments": {
       "typedRoutes": true,
-      "reactCompiler": true
+      "reactCompiler": true,
+      "baseUrl": "/Recall"
     },
     "extra": {
       "router": {},
@@ -78,6 +79,13 @@
         "projectId": "c31b2831-92bb-4184-af62-feaeb7caf7f3"
       }
     },
-    "owner": "paulfulfer"
+    "owner": "paulfulfer",
+    "runtimeVersion": {
+      "policy": "appVersion"
+    },
+    "updates": {
+      "url": "https://u.expo.dev/c31b2831-92bb-4184-af62-feaeb7caf7f3",
+      "checkAutomatically": "ON_LOAD"
+    }
   }
 }

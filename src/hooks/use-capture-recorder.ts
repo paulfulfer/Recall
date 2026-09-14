@@ -16,6 +16,15 @@ import type { CaptureExtracted } from "@/types/models";
 
 const MAX_RECORDING_MS = 60_000;
 
+// expo-audio's web layer records via MediaRecorder/getUserMedia — real browser mic access,
+// not a stub — so this only needs to catch genuinely unsupported browsers (no
+// navigator.mediaDevices at all, e.g. very old browsers or a non-secure/HTTP origin).
+// Permission denial on a supported browser is handled separately by the existing
+// error-stage flow below, same as a mobile permission denial.
+const canRecordOnThisPlatform =
+  Platform.OS !== "web" ||
+  (typeof navigator !== "undefined" && !!(navigator.mediaDevices && navigator.mediaDevices.getUserMedia));
+
 export type CaptureStage =
   | "idle"
   | "recording"
@@ -217,6 +226,7 @@ export function useCaptureRecorder(uid: string) {
     isRecording: recorderState.isRecording,
     durationMillis: recorderState.durationMillis,
     metering: recorderState.metering,
+    canRecord: canRecordOnThisPlatform,
     startRecording,
     stopRecording,
     submitTypedCapture,
