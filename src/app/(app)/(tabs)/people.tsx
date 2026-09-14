@@ -16,6 +16,9 @@ import type { Person } from '@/types/models';
 
 type SortMode = 'name' | 'birthday' | 'recent';
 
+// Spec polish phase 4: a subtle (not alarming) cue once contact has gone stale.
+const STALE_CONTACT_DAYS = 30;
+
 function daysSince(iso: string): number {
   return Math.max(0, Math.floor((Date.now() - new Date(iso).getTime()) / 86_400_000));
 }
@@ -145,7 +148,7 @@ function PeopleList({ uid }: { uid: string }) {
               )}
             </View>
             <View style={styles.rowMeta}>
-              <Text style={styles.days}>
+              <Text style={[styles.days, daysSince(item.lastContacted) >= STALE_CONTACT_DAYS && styles.daysStale]}>
                 {daysSince(item.lastContacted) === 0 ? 'Today' : `${daysSince(item.lastContacted)}d ago`}
               </Text>
               <ClosenessDots category={item.category} value={item.closeness} />
@@ -241,5 +244,8 @@ function createStyles(t: ThemeTokens) {
     snippet: { fontFamily: LORA.regular, fontSize: 12.5, color: t.textSecondary },
     rowMeta: { alignItems: 'flex-end', gap: 6 },
     days: { fontFamily: LORA.regular, fontSize: 11.5, color: t.textTertiary },
+    // Reuses the gentle amber "reminder" tone (also used for the birthday banner) rather
+    // than an error/red color — a nudge, not an alarm.
+    daysStale: { color: t.reminderText },
   });
 }
