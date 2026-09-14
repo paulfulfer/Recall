@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useState } from 'react';
 import { Pressable, ScrollView, StyleSheet, Text, TextInput, View } from 'react-native';
+import { SafeAreaView } from 'react-native-safe-area-context';
 
 import { attachCaptureToPerson, updateCapture } from '@/lib/captures';
 import { addPersonFacts, addPersonImportantDate, createPerson, listPeople, matchPeopleByName, updatePerson } from '@/lib/people';
@@ -136,152 +137,154 @@ export function CaptureConfirm({ uid, captureId, transcript, initialExtracted, o
   }
 
   return (
-    <ScrollView style={styles.flex} contentContainerStyle={styles.content}>
-      <View style={styles.headerRow}>
-        <ThemedLabel styles={styles}>Confirm capture</ThemedLabel>
-        <Pressable onPress={onCancel}>
-          <Text style={styles.cancel}>Cancel</Text>
-        </Pressable>
-      </View>
-
-      {transcript ? (
+    <SafeAreaView style={styles.flex} edges={['top', 'bottom']}>
+      <ScrollView style={styles.flex} contentContainerStyle={styles.content}>
+        <View style={styles.headerRow}>
+          <ThemedLabel styles={styles}>Confirm capture</ThemedLabel>
+          <Pressable onPress={onCancel}>
+            <Text style={styles.cancel}>Cancel</Text>
+          </Pressable>
+        </View>
+  
+        {transcript ? (
+          <View style={styles.card}>
+            <ThemedLabel styles={styles}>Transcript</ThemedLabel>
+            <Text style={styles.transcriptText}>{transcript}</Text>
+          </View>
+        ) : null}
+  
         <View style={styles.card}>
-          <ThemedLabel styles={styles}>Transcript</ThemedLabel>
-          <Text style={styles.transcriptText}>{transcript}</Text>
+          <ThemedLabel styles={styles}>Name</ThemedLabel>
+          <TextInput
+            value={name}
+            onChangeText={setName}
+            placeholder="Who was this?"
+            placeholderTextColor={tokens.textTertiary}
+            style={styles.input}
+          />
         </View>
-      ) : null}
-
-      <View style={styles.card}>
-        <ThemedLabel styles={styles}>Name</ThemedLabel>
-        <TextInput
-          value={name}
-          onChangeText={setName}
-          placeholder="Who was this?"
-          placeholderTextColor={tokens.textTertiary}
-          style={styles.input}
-        />
-      </View>
-
-      <View style={styles.card}>
-        <ThemedLabel styles={styles}>Category</ThemedLabel>
-        <View style={styles.chipRow}>
-          {CATEGORIES.map((c) => {
-            const accent = CATEGORY_ACCENTS[c][mode];
-            const selected = category === c;
-            return (
-              <Pressable
-                key={c}
-                onPress={() => setCategory(c)}
-                style={[styles.chip, { borderColor: accent }, selected && { backgroundColor: accent }]}>
-                <Text style={[styles.chipText, { color: selected ? tokens.bg : accent }]}>{c}</Text>
+  
+        <View style={styles.card}>
+          <ThemedLabel styles={styles}>Category</ThemedLabel>
+          <View style={styles.chipRow}>
+            {CATEGORIES.map((c) => {
+              const accent = CATEGORY_ACCENTS[c][mode];
+              const selected = category === c;
+              return (
+                <Pressable
+                  key={c}
+                  onPress={() => setCategory(c)}
+                  style={[styles.chip, { borderColor: accent }, selected && { backgroundColor: accent }]}>
+                  <Text style={[styles.chipText, { color: selected ? tokens.bg : accent }]}>{c}</Text>
+                </Pressable>
+              );
+            })}
+          </View>
+        </View>
+  
+        <View style={styles.card}>
+          <ThemedLabel styles={styles}>Facts</ThemedLabel>
+          {facts.map((fact, i) => (
+            <View key={`${fact}-${i}`} style={styles.listRow}>
+              <Text style={styles.listRowText}>{fact}</Text>
+              <Pressable onPress={() => removeFact(i)}>
+                <Text style={styles.removeText}>Remove</Text>
               </Pressable>
-            );
-          })}
-        </View>
-      </View>
-
-      <View style={styles.card}>
-        <ThemedLabel styles={styles}>Facts</ThemedLabel>
-        {facts.map((fact, i) => (
-          <View key={`${fact}-${i}`} style={styles.listRow}>
-            <Text style={styles.listRowText}>{fact}</Text>
-            <Pressable onPress={() => removeFact(i)}>
-              <Text style={styles.removeText}>Remove</Text>
-            </Pressable>
-          </View>
-        ))}
-        <View style={styles.addRow}>
-          <TextInput
-            value={newFact}
-            onChangeText={setNewFact}
-            placeholder="Add a fact"
-            placeholderTextColor={tokens.textTertiary}
-            style={[styles.input, styles.flex1]}
-            onSubmitEditing={addFact}
-          />
-          <Pressable onPress={addFact} style={styles.addButton}>
-            <Text style={styles.addButtonText}>Add</Text>
-          </Pressable>
-        </View>
-      </View>
-
-      <View style={styles.card}>
-        <ThemedLabel styles={styles}>Important dates</ThemedLabel>
-        {dates.map((d, i) => (
-          <View key={`${d.label}-${d.date}-${i}`} style={styles.listRow}>
-            <Text style={styles.listRowText}>{d.label} — {d.date}</Text>
-            <Pressable onPress={() => removeDate(i)}>
-              <Text style={styles.removeText}>Remove</Text>
-            </Pressable>
-          </View>
-        ))}
-        <View style={styles.addRow}>
-          <TextInput
-            value={newDateLabel}
-            onChangeText={setNewDateLabel}
-            placeholder="Label"
-            placeholderTextColor={tokens.textTertiary}
-            style={[styles.input, styles.flex1]}
-          />
-          <TextInput
-            value={newDateValue}
-            onChangeText={setNewDateValue}
-            placeholder="MM-DD"
-            placeholderTextColor={tokens.textTertiary}
-            style={[styles.input, styles.dateInput]}
-          />
-          <Pressable onPress={addDate} style={styles.addButton}>
-            <Text style={styles.addButtonText}>Add</Text>
-          </Pressable>
-        </View>
-      </View>
-
-      <View style={styles.card}>
-        <ThemedLabel styles={styles}>Save to</ThemedLabel>
-
-        {matches.length > 0 && (
-          <>
-            <Text style={styles.subLabel}>Attach to existing</Text>
-            <View style={styles.chipRow}>
-              {matches.map((p) => {
-                const selected = saveMode === 'attach' && selectedPersonId === p.id;
-                return (
-                  <Pressable
-                    key={p.id}
-                    onPress={() => setUserChoice({ mode: 'attach', personId: p.id })}
-                    style={[styles.chip, { borderColor: tokens.contactLink }, selected && { backgroundColor: tokens.contactLink }]}>
-                    <Text style={[styles.chipText, { color: selected ? tokens.bg : tokens.contactLink }]}>{p.name}</Text>
-                  </Pressable>
-                );
-              })}
             </View>
-          </>
-        )}
-
-        <View style={styles.modeRow}>
-          <Pressable
-            onPress={() => setUserChoice({ mode: 'create', personId: null })}
-            style={[styles.modeButton, saveMode === 'create' && styles.modeButtonActive]}>
-            <Text style={[styles.modeButtonText, saveMode === 'create' && styles.modeButtonTextActive]}>
-              Create new person
-            </Text>
-          </Pressable>
-          <Pressable
-            onPress={() => setUserChoice({ mode: 'orphan', personId: null })}
-            style={[styles.modeButton, saveMode === 'orphan' && styles.modeButtonActive]}>
-            <Text style={[styles.modeButtonText, saveMode === 'orphan' && styles.modeButtonTextActive]}>
-              Save without a person
-            </Text>
-          </Pressable>
+          ))}
+          <View style={styles.addRow}>
+            <TextInput
+              value={newFact}
+              onChangeText={setNewFact}
+              placeholder="Add a fact"
+              placeholderTextColor={tokens.textTertiary}
+              style={[styles.input, styles.flex1]}
+              onSubmitEditing={addFact}
+            />
+            <Pressable onPress={addFact} style={styles.addButton}>
+              <Text style={styles.addButtonText}>Add</Text>
+            </Pressable>
+          </View>
         </View>
-      </View>
-
-      {saveError ? <Text style={styles.error}>{saveError}</Text> : null}
-
-      <Pressable onPress={handleSave} disabled={saving} style={[styles.saveButton, saving && styles.saveButtonDisabled]}>
-        <Text style={styles.saveButtonText}>{saving ? 'Saving…' : 'Save'}</Text>
-      </Pressable>
-    </ScrollView>
+  
+        <View style={styles.card}>
+          <ThemedLabel styles={styles}>Important dates</ThemedLabel>
+          {dates.map((d, i) => (
+            <View key={`${d.label}-${d.date}-${i}`} style={styles.listRow}>
+              <Text style={styles.listRowText}>{d.label} — {d.date}</Text>
+              <Pressable onPress={() => removeDate(i)}>
+                <Text style={styles.removeText}>Remove</Text>
+              </Pressable>
+            </View>
+          ))}
+          <View style={styles.addRow}>
+            <TextInput
+              value={newDateLabel}
+              onChangeText={setNewDateLabel}
+              placeholder="Label"
+              placeholderTextColor={tokens.textTertiary}
+              style={[styles.input, styles.flex1]}
+            />
+            <TextInput
+              value={newDateValue}
+              onChangeText={setNewDateValue}
+              placeholder="MM-DD"
+              placeholderTextColor={tokens.textTertiary}
+              style={[styles.input, styles.dateInput]}
+            />
+            <Pressable onPress={addDate} style={styles.addButton}>
+              <Text style={styles.addButtonText}>Add</Text>
+            </Pressable>
+          </View>
+        </View>
+  
+        <View style={styles.card}>
+          <ThemedLabel styles={styles}>Save to</ThemedLabel>
+  
+          {matches.length > 0 && (
+            <>
+              <Text style={styles.subLabel}>Attach to existing</Text>
+              <View style={styles.chipRow}>
+                {matches.map((p) => {
+                  const selected = saveMode === 'attach' && selectedPersonId === p.id;
+                  return (
+                    <Pressable
+                      key={p.id}
+                      onPress={() => setUserChoice({ mode: 'attach', personId: p.id })}
+                      style={[styles.chip, { borderColor: tokens.contactLink }, selected && { backgroundColor: tokens.contactLink }]}>
+                      <Text style={[styles.chipText, { color: selected ? tokens.bg : tokens.contactLink }]}>{p.name}</Text>
+                    </Pressable>
+                  );
+                })}
+              </View>
+            </>
+          )}
+  
+          <View style={styles.modeRow}>
+            <Pressable
+              onPress={() => setUserChoice({ mode: 'create', personId: null })}
+              style={[styles.modeButton, saveMode === 'create' && styles.modeButtonActive]}>
+              <Text style={[styles.modeButtonText, saveMode === 'create' && styles.modeButtonTextActive]}>
+                Create new person
+              </Text>
+            </Pressable>
+            <Pressable
+              onPress={() => setUserChoice({ mode: 'orphan', personId: null })}
+              style={[styles.modeButton, saveMode === 'orphan' && styles.modeButtonActive]}>
+              <Text style={[styles.modeButtonText, saveMode === 'orphan' && styles.modeButtonTextActive]}>
+                Save without a person
+              </Text>
+            </Pressable>
+          </View>
+        </View>
+  
+        {saveError ? <Text style={styles.error}>{saveError}</Text> : null}
+  
+        <Pressable onPress={handleSave} disabled={saving} style={[styles.saveButton, saving && styles.saveButtonDisabled]}>
+          <Text style={styles.saveButtonText}>{saving ? 'Saving…' : 'Save'}</Text>
+        </Pressable>
+      </ScrollView>
+    </SafeAreaView>
   );
 }
 

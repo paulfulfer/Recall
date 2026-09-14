@@ -79,21 +79,11 @@ function RecordHome({ uid }: { uid: string }) {
       <ScrollView contentContainerStyle={styles.content}>
         <Text style={styles.title}>Recall</Text>
 
-        <BirthdayBanner uid={uid} />
-
-        <View style={styles.recordSection}>
-          <RecordButton
-            recording={isRecording}
-            disabled={busy}
-            metering={metering}
-            onPress={() => (isRecording ? stopRecording() : startRecording())}
-          />
-          <View style={styles.stageRow}>
-            {busy && <ActivityIndicator size="small" color={tokens.textSecondary} />}
-            <Text style={styles.stageLabel}>{stageLabel(stage)}</Text>
-          </View>
-          {isRecording && <Text style={styles.timer}>{seconds}s / 60s</Text>}
+        <View style={styles.logoPlaceholder}>
+          <Text style={styles.logoPlaceholderText}>R</Text>
         </View>
+
+        <BirthdayBanner uid={uid} />
 
         {error ? (
           <View style={styles.errorCard}>
@@ -135,6 +125,20 @@ function RecordHome({ uid }: { uid: string }) {
           </Pressable>
         </View>
       </ScrollView>
+
+      <View style={styles.recordSection}>
+        <RecordButton
+          recording={isRecording}
+          disabled={busy}
+          metering={metering}
+          onPress={() => (isRecording ? stopRecording() : startRecording())}
+        />
+        <View style={styles.stageRow}>
+          {busy && <ActivityIndicator size="small" color={tokens.textSecondary} />}
+          <Text style={styles.stageLabel}>{stageLabel(stage)}</Text>
+        </View>
+        {isRecording && <Text style={styles.timer}>{seconds}s / 60s</Text>}
+      </View>
     </SafeAreaView>
   );
 }
@@ -144,7 +148,26 @@ function createStyles(t: ThemeTokens) {
     flex: { flex: 1, backgroundColor: t.bg },
     content: { flexGrow: 1, alignItems: 'center', padding: 24, gap: 20 },
     title: { fontFamily: LORA.bold, fontSize: 26, letterSpacing: -0.3, color: t.textPrimary, marginTop: 12 },
-    recordSection: { alignItems: 'center', gap: 12, marginTop: 24 },
+    logoPlaceholder: {
+      width: 56,
+      height: 56,
+      borderRadius: 28,
+      backgroundColor: t.pillPrimaryBg,
+      alignItems: 'center',
+      justifyContent: 'center',
+    },
+    logoPlaceholderText: { fontFamily: LORA.bold, fontSize: 22, color: t.pillPrimaryText },
+    // Fixed footer (outside the ScrollView) so the record button stays in the thumb-reach
+    // zone near the bottom of the screen regardless of scroll position (spec polish phase 2).
+    recordSection: {
+      alignItems: 'center',
+      gap: 10,
+      paddingTop: 14,
+      paddingBottom: 10,
+      borderTopWidth: StyleSheet.hairlineWidth,
+      borderTopColor: t.cardBorder,
+      backgroundColor: t.bg,
+    },
     stageRow: { flexDirection: 'row', alignItems: 'center', gap: 8 },
     stageLabel: { fontFamily: LORA.medium, fontSize: 14, color: t.textSecondary },
     timer: { fontFamily: LORA.regular, fontSize: 12, color: t.textTertiary },

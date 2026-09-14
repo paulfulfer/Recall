@@ -1,6 +1,6 @@
 import { router } from 'expo-router';
-import { useEffect, useMemo, useState } from 'react';
-import { ActivityIndicator, FlatList, Pressable, StyleSheet, Text, TextInput, View } from 'react-native';
+import { useCallback, useEffect, useMemo, useState } from 'react';
+import { ActivityIndicator, FlatList, Pressable, RefreshControl, StyleSheet, Text, TextInput, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
 import { AvatarBadge } from '@/components/avatar-badge';
@@ -9,7 +9,7 @@ import { ClosenessDots } from '@/components/closeness-dots';
 import { CATEGORIES, type Category } from '@/constants/categories';
 import { LAYOUT, LORA, type ThemeTokens } from '@/constants/theme';
 import { daysUntilBirthday } from '@/lib/birthdays';
-import { subscribeToPeople } from '@/lib/people';
+import { listPeople, subscribeToPeople } from '@/lib/people';
 import { useAuth } from '@/providers/auth-provider';
 import { useAppTheme } from '@/providers/theme-provider';
 import type { Person } from '@/types/models';
@@ -32,6 +32,7 @@ function PeopleList({ uid }: { uid: string }) {
 
   const [people, setPeople] = useState<Person[]>([]);
   const [loading, setLoading] = useState(true);
+  const [refreshing, setRefreshing] = useState(false);
   const [search, setSearch] = useState('');
   const [category, setCategory] = useState<Category | null>(null);
   const [sortMode, setSortMode] = useState<SortMode>('name');
@@ -44,6 +45,20 @@ function PeopleList({ uid }: { uid: string }) {
       }),
     [uid],
   );
+
+  // The list above is already live via subscribeToPeople's onSnapshot listener, but pull-to-
+  // refresh still gives a way to force a fresh server round-trip (useful right after coming
+  // back online, when the listener may briefly be serving cached data).
+  const onRefresh = useCallback(async () => {
+    setRefreshing(true);
+    try {
+      setPeople(await listPeople(uid));
+    } catch {
+      // Ignore — the live listener will recover the list on its own.
+    } finally {
+      setRefreshing(false);
+    }
+  }, [uid]);
 
   const filtered = useMemo(() => {
     const needle = search.trim().toLowerCase();
@@ -101,6 +116,9 @@ function PeopleList({ uid }: { uid: string }) {
         data={filtered}
         keyExtractor={(p) => p.id}
         contentContainerStyle={styles.listContent}
+        refreshControl={
+          <RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor={tokens.textTertiary} />
+        }
         ListEmptyComponent={
           loading ? (
             <ActivityIndicator style={styles.loading} color={tokens.textTertiary} />
