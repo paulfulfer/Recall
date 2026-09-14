@@ -1,6 +1,6 @@
 import { router } from 'expo-router';
 import { useEffect, useMemo, useState } from 'react';
-import { FlatList, Pressable, StyleSheet, Text, View } from 'react-native';
+import { ActivityIndicator, FlatList, Pressable, StyleSheet, Text, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
 import { LAYOUT, LORA, type ThemeTokens } from '@/constants/theme';
@@ -33,8 +33,16 @@ function UnfiledList({ uid }: { uid: string }) {
   const { tokens } = useAppTheme();
   const styles = useMemo(() => createStyles(tokens), [tokens]);
   const [captures, setCaptures] = useState<Capture[]>([]);
+  const [loading, setLoading] = useState(true);
 
-  useEffect(() => subscribeToOrphanCaptures(uid, setCaptures), [uid]);
+  useEffect(
+    () =>
+      subscribeToOrphanCaptures(uid, (next) => {
+        setCaptures(next);
+        setLoading(false);
+      }),
+    [uid],
+  );
 
   return (
     <SafeAreaView style={styles.flex} edges={['top']}>
@@ -46,7 +54,13 @@ function UnfiledList({ uid }: { uid: string }) {
         data={captures}
         keyExtractor={(c) => c.id}
         contentContainerStyle={styles.listContent}
-        ListEmptyComponent={<Text style={styles.empty}>Nothing unfiled — every capture has a person.</Text>}
+        ListEmptyComponent={
+          loading ? (
+            <ActivityIndicator style={styles.loading} color={tokens.textTertiary} />
+          ) : (
+            <Text style={styles.empty}>Nothing unfiled — every capture has a person.</Text>
+          )
+        }
         renderItem={({ item }) => (
           <Pressable style={styles.card} onPress={() => router.push(`/capture/${item.id}`)}>
             {formatAnchors(item).map((line, i) => (
@@ -74,6 +88,7 @@ function createStyles(t: ThemeTokens) {
     title: { fontFamily: LORA.bold, fontSize: 26, letterSpacing: -0.3, color: t.textPrimary },
     listContent: { padding: 16, gap: LAYOUT.listRowGap },
     empty: { fontFamily: LORA.regular, fontSize: 14, color: t.textTertiary, textAlign: 'center', marginTop: 40 },
+    loading: { marginTop: 40 },
     card: {
       backgroundColor: t.card,
       borderRadius: LAYOUT.cardRadius,

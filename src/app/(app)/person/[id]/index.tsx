@@ -1,6 +1,6 @@
 import { router, useLocalSearchParams } from 'expo-router';
 import { useEffect, useMemo, useState } from 'react';
-import { Pressable, ScrollView, StyleSheet, Text, TextInput, View } from 'react-native';
+import { ActivityIndicator, Pressable, ScrollView, StyleSheet, Text, TextInput, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
 import { AvatarBadge } from '@/components/avatar-badge';
@@ -34,7 +34,13 @@ function PersonDetail({ uid, personId }: { uid: string; personId: string }) {
   useEffect(() => subscribeToPerson(uid, personId, setPerson), [uid, personId]);
   useEffect(() => subscribeToCapturesForPerson(uid, personId, setCaptures), [uid, personId]);
 
-  if (person === undefined) return null;
+  if (person === undefined) {
+    return (
+      <SafeAreaView style={styles.flex}>
+        <ActivityIndicator style={styles.loading} color={tokens.textTertiary} />
+      </SafeAreaView>
+    );
+  }
   if (person === null) {
     return (
       <SafeAreaView style={styles.flex}>
@@ -203,6 +209,7 @@ function createStyles(t: ThemeTokens) {
     headerRow: { flexDirection: 'row', justifyContent: 'space-between' },
     back: { fontFamily: LORA.medium, fontSize: 14, color: t.contactLink },
     notFound: { fontFamily: LORA.regular, fontSize: 14, color: t.textSecondary, textAlign: 'center', marginTop: 40 },
+    loading: { marginTop: 40 },
     profileHeader: { flexDirection: 'row', alignItems: 'center', gap: 14, marginBottom: 4 },
     profileText: { gap: 4 },
     name: { fontFamily: LORA.semiBold, fontSize: 18, color: t.textPrimary },

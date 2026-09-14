@@ -1,6 +1,6 @@
 import { router } from 'expo-router';
 import { useEffect, useMemo, useState } from 'react';
-import { FlatList, Pressable, StyleSheet, Text, TextInput, View } from 'react-native';
+import { ActivityIndicator, FlatList, Pressable, StyleSheet, Text, TextInput, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
 import { AvatarBadge } from '@/components/avatar-badge';
@@ -31,11 +31,19 @@ function PeopleList({ uid }: { uid: string }) {
   const styles = useMemo(() => createStyles(tokens), [tokens]);
 
   const [people, setPeople] = useState<Person[]>([]);
+  const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState('');
   const [category, setCategory] = useState<Category | null>(null);
   const [sortMode, setSortMode] = useState<SortMode>('name');
 
-  useEffect(() => subscribeToPeople(uid, setPeople), [uid]);
+  useEffect(
+    () =>
+      subscribeToPeople(uid, (next) => {
+        setPeople(next);
+        setLoading(false);
+      }),
+    [uid],
+  );
 
   const filtered = useMemo(() => {
     const needle = search.trim().toLowerCase();
@@ -93,7 +101,13 @@ function PeopleList({ uid }: { uid: string }) {
         data={filtered}
         keyExtractor={(p) => p.id}
         contentContainerStyle={styles.listContent}
-        ListEmptyComponent={<Text style={styles.empty}>No one here yet.</Text>}
+        ListEmptyComponent={
+          loading ? (
+            <ActivityIndicator style={styles.loading} color={tokens.textTertiary} />
+          ) : (
+            <Text style={styles.empty}>No one here yet.</Text>
+          )
+        }
         renderItem={({ item }) => (
           <Pressable style={styles.row} onPress={() => router.push(`/person/${item.id}`)}>
             <AvatarBadge
@@ -194,6 +208,7 @@ function createStyles(t: ThemeTokens) {
     sortRow: { flexDirection: 'row', gap: 16, paddingBottom: 4 },
     listContent: { padding: 16, gap: LAYOUT.listRowGap },
     empty: { fontFamily: LORA.regular, fontSize: 14, color: t.textTertiary, textAlign: 'center', marginTop: 40 },
+    loading: { marginTop: 40 },
     row: {
       flexDirection: 'row',
       alignItems: 'center',

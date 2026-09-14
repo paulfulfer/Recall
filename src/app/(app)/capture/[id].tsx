@@ -1,6 +1,6 @@
 import { router, useLocalSearchParams } from 'expo-router';
 import { useEffect, useState } from 'react';
-import { StyleSheet, Text } from 'react-native';
+import { ActivityIndicator, StyleSheet, Text } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
 import { CaptureConfirm } from '@/components/capture-confirm';
@@ -25,10 +25,18 @@ function CaptureMerge({ uid, captureId }: { uid: string; captureId: string }) {
   const [capture, setCapture] = useState<Capture | null | undefined>(undefined);
 
   useEffect(() => {
-    getCapture(uid, captureId).then(setCapture);
+    getCapture(uid, captureId)
+      .then(setCapture)
+      .catch(() => setCapture(null));
   }, [uid, captureId]);
 
-  if (capture === undefined) return null;
+  if (capture === undefined) {
+    return (
+      <SafeAreaView style={{ flex: 1, backgroundColor: tokens.bg }}>
+        <ActivityIndicator style={createStyles(tokens).loading} color={tokens.textTertiary} />
+      </SafeAreaView>
+    );
+  }
   if (capture === null) {
     return (
       <SafeAreaView style={{ flex: 1, backgroundColor: tokens.bg }}>
@@ -52,5 +60,6 @@ function CaptureMerge({ uid, captureId }: { uid: string; captureId: string }) {
 function createStyles(t: ThemeTokens) {
   return StyleSheet.create({
     notFound: { fontFamily: LORA.regular, fontSize: 14, color: t.textSecondary, textAlign: 'center', marginTop: 40 },
+    loading: { marginTop: 40 },
   });
 }

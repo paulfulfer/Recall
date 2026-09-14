@@ -1,5 +1,5 @@
 import { useMemo, useState } from 'react';
-import { Pressable, ScrollView, StyleSheet, Text, TextInput, View } from 'react-native';
+import { ActivityIndicator, Pressable, ScrollView, StyleSheet, Text, TextInput, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
 import { BirthdayBanner } from '@/components/birthday-banner';
@@ -42,6 +42,8 @@ function RecordHome({ uid }: { uid: string }) {
     transcript,
     extracted,
     error,
+    canRetry,
+    retry,
     isRecording,
     durationMillis,
     startRecording,
@@ -84,11 +86,33 @@ function RecordHome({ uid }: { uid: string }) {
             disabled={busy}
             onPress={() => (isRecording ? stopRecording() : startRecording())}
           />
-          <Text style={styles.stageLabel}>{stageLabel(stage)}</Text>
+          <View style={styles.stageRow}>
+            {busy && <ActivityIndicator size="small" color={tokens.textSecondary} />}
+            <Text style={styles.stageLabel}>{stageLabel(stage)}</Text>
+          </View>
           {isRecording && <Text style={styles.timer}>{seconds}s / 60s</Text>}
         </View>
 
-        {error ? <Text style={styles.error}>{error}</Text> : null}
+        {error ? (
+          <View style={styles.errorCard}>
+            <Text style={styles.error}>{error}</Text>
+            <Text style={styles.errorHint}>
+              {canRetry
+                ? "Nothing was lost — your recording and its details are saved."
+                : "Nothing was recorded, so there's nothing to lose here."}
+            </Text>
+            <View style={styles.errorActions}>
+              {canRetry && (
+                <Pressable onPress={retry} style={styles.retryButton}>
+                  <Text style={styles.retryButtonText}>Retry</Text>
+                </Pressable>
+              )}
+              <Pressable onPress={reset} style={styles.discardButton}>
+                <Text style={styles.discardButtonText}>{canRetry ? 'Discard' : 'Dismiss'}</Text>
+              </Pressable>
+            </View>
+          </View>
+        ) : null}
 
         <View style={styles.typedCard}>
           <Text style={styles.typedLabel}>Or type it instead</Text>
@@ -119,9 +143,24 @@ function createStyles(t: ThemeTokens) {
     content: { flexGrow: 1, alignItems: 'center', padding: 24, gap: 20 },
     title: { fontFamily: LORA.bold, fontSize: 26, letterSpacing: -0.3, color: t.textPrimary, marginTop: 12 },
     recordSection: { alignItems: 'center', gap: 12, marginTop: 24 },
+    stageRow: { flexDirection: 'row', alignItems: 'center', gap: 8 },
     stageLabel: { fontFamily: LORA.medium, fontSize: 14, color: t.textSecondary },
     timer: { fontFamily: LORA.regular, fontSize: 12, color: t.textTertiary },
-    error: { fontFamily: LORA.regular, fontSize: 13, color: t.reminderText, textAlign: 'center' },
+    error: { fontFamily: LORA.medium, fontSize: 13, color: t.reminderText, textAlign: 'center' },
+    errorCard: {
+      width: '100%',
+      maxWidth: 420,
+      backgroundColor: t.reminderCardBg,
+      borderRadius: 16,
+      padding: 14,
+      gap: 8,
+    },
+    errorHint: { fontFamily: LORA.regular, fontSize: 12.5, color: t.reminderText, textAlign: 'center' },
+    errorActions: { flexDirection: 'row', justifyContent: 'center', gap: 8, marginTop: 4 },
+    retryButton: { backgroundColor: t.pillPrimaryBg, borderRadius: 999, paddingHorizontal: 16, paddingVertical: 9 },
+    retryButtonText: { fontFamily: LORA.semiBold, fontSize: 13, color: t.pillPrimaryText },
+    discardButton: { borderWidth: 1, borderColor: t.reminderText, borderRadius: 999, paddingHorizontal: 16, paddingVertical: 9 },
+    discardButtonText: { fontFamily: LORA.medium, fontSize: 13, color: t.reminderText },
     typedCard: {
       width: '100%',
       maxWidth: 420,

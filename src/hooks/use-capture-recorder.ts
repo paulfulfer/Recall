@@ -59,12 +59,28 @@ export function useCaptureRecorder(uid: string) {
     }
   }, []);
 
+  // Set once the audio upload succeeds, so a transcription failure can be retried without
+  // re-recording — the audio and its anchors are already safe in Storage/Firestore at that
+  // point (spec section 4 step 4 / phase 15's "shouldn't lose audio or anchors").
+  const audioPathRef = useRef<string | null>(null);
+  const mimeTypeRef = useRef<string | null>(null);
+
   const runExtraction = useCallback(async (id: string, text: string) => {
     setStage("extracting");
     const result = await extractCaptureCallable({ captureId: id, transcript: text });
     setExtracted(result.data);
     setStage("ready");
   }, []);
+
+  const transcribeAndExtract = useCallback(
+    async (id: string, audioPath: string, mimeType: string) => {
+      setStage("transcribing");
+      const transcribed = await transcribeCaptureCallable({ captureId: id, audioPath, mimeType });
+      setTranscript(transcribed.data.transcript);
+      await runExtraction(id, transcribed.data.transcript);
+    },
+    [runExtraction],
+  );
 
   const finishRecording = useCallback(async () => {
     clearAutoStop();
@@ -92,24 +108,43 @@ export function useCaptureRecorder(uid: string) {
       const mimeType = Platform.OS === "web" ? "audio/webm" : "audio/mp4";
       const { audioUrl, audioPath } = await uploadCaptureAudio(uid, capture.id, uri, extension, mimeType);
       await updateCapture(uid, capture.id, { audioUrl });
+      audioPathRef.current = audioPath;
+      mimeTypeRef.current = mimeType;
 
-      setStage("transcribing");
-      const transcribed = await transcribeCaptureCallable({ captureId: capture.id, audioPath, mimeType });
-      setTranscript(transcribed.data.transcript);
-
-      await runExtraction(capture.id, transcribed.data.transcript);
+      await transcribeAndExtract(capture.id, audioPath, mimeType);
     } catch (err) {
       console.error("[capture-pipeline] failed", err);
       setError(err instanceof Error ? err.message : "Something went wrong.");
       setStage("error");
     }
-  }, [clearAutoStop, recorder, runExtraction, uid]);
+  }, [clearAutoStop, recorder, transcribeAndExtract, uid]);
+
+  // Resumes from wherever the pipeline stopped rather than starting over: retries
+  // transcription if the audio never got transcribed, or just extraction if a transcript
+  // already exists (voice or typed) but extraction failed.
+  const retry = useCallback(async () => {
+    if (!captureId) return;
+    setError(null);
+    try {
+      if (!transcript && audioPathRef.current && mimeTypeRef.current) {
+        await transcribeAndExtract(captureId, audioPathRef.current, mimeTypeRef.current);
+      } else {
+        await runExtraction(captureId, transcript);
+      }
+    } catch (err) {
+      console.error("[capture-pipeline] retry failed", err);
+      setError(err instanceof Error ? err.message : "Something went wrong.");
+      setStage("error");
+    }
+  }, [captureId, transcript, transcribeAndExtract, runExtraction]);
 
   const startRecording = useCallback(async () => {
     setError(null);
     setExtracted(null);
     setTranscript("");
     setCaptureId(null);
+    audioPathRef.current = null;
+    mimeTypeRef.current = null;
 
     const { granted } = await requestRecordingPermissionsAsync();
     if (!granted) {
@@ -139,6 +174,8 @@ export function useCaptureRecorder(uid: string) {
       setExtracted(null);
       setCaptureId(null);
       setTranscript(trimmed);
+      audioPathRef.current = null;
+      mimeTypeRef.current = null;
       setStage("uploading");
       try {
         const anchors = await captureAnchors();
@@ -165,6 +202,8 @@ export function useCaptureRecorder(uid: string) {
     setTranscript("");
     setExtracted(null);
     setError(null);
+    audioPathRef.current = null;
+    mimeTypeRef.current = null;
   }, []);
 
   return {
@@ -173,6 +212,8 @@ export function useCaptureRecorder(uid: string) {
     transcript,
     extracted,
     error,
+    canRetry: stage === "error" && captureId !== null,
+    retry,
     isRecording: recorderState.isRecording,
     durationMillis: recorderState.durationMillis,
     startRecording,
