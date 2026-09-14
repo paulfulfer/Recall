@@ -1,10 +1,14 @@
 import { router } from 'expo-router';
 import { useEffect, useMemo, useState } from 'react';
-import { ActivityIndicator, FlatList, Pressable, StyleSheet, Text, View } from 'react-native';
+import { ActivityIndicator, FlatList, StyleSheet, Text, View } from 'react-native';
+import { Pressable } from 'react-native-gesture-handler';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
+import { SwipeableRow } from '@/components/swipeable-row';
+import { UndoSnackbar } from '@/components/undo-snackbar';
 import { LAYOUT, LORA, type ThemeTokens } from '@/constants/theme';
-import { subscribeToOrphanCaptures } from '@/lib/captures';
+import { usePendingDelete } from '@/hooks/use-pending-delete';
+import { deleteCapture, subscribeToOrphanCaptures } from '@/lib/captures';
 import { useAuth } from '@/providers/auth-provider';
 import { useAppTheme } from '@/providers/theme-provider';
 import type { Capture } from '@/types/models';
@@ -34,6 +38,7 @@ function UnfiledList({ uid }: { uid: string }) {
   const styles = useMemo(() => createStyles(tokens), [tokens]);
   const [captures, setCaptures] = useState<Capture[]>([]);
   const [loading, setLoading] = useState(true);
+  const { pending, requestDelete, undo } = usePendingDelete<Capture>((capture) => deleteCapture(uid, capture.id));
 
   useEffect(
     () =>
@@ -44,14 +49,16 @@ function UnfiledList({ uid }: { uid: string }) {
     [uid],
   );
 
+  const visibleCaptures = pending ? captures.filter((c) => c.id !== pending.item.id) : captures;
+
   return (
     <SafeAreaView style={styles.flex} edges={['top']}>
       <View style={styles.header}>
-        <Text style={styles.title}>Unfiled{captures.length > 0 ? ` (${captures.length})` : ''}</Text>
+        <Text style={styles.title}>Unfiled{visibleCaptures.length > 0 ? ` (${visibleCaptures.length})` : ''}</Text>
       </View>
 
       <FlatList
-        data={captures}
+        data={visibleCaptures}
         keyExtractor={(c) => c.id}
         contentContainerStyle={styles.listContent}
         ListEmptyComponent={
@@ -62,21 +69,25 @@ function UnfiledList({ uid }: { uid: string }) {
           )
         }
         renderItem={({ item }) => (
-          <Pressable style={styles.card} onPress={() => router.push(`/capture/${item.id}`)}>
-            {formatAnchors(item).map((line, i) => (
-              <Text key={i} style={i === 0 ? styles.date : styles.anchor}>{line}</Text>
-            ))}
-            {item.extracted.name ? <Text style={styles.name}>{item.extracted.name}</Text> : null}
-            {item.extracted.facts.length > 0 ? (
-              <Text style={styles.snippet} numberOfLines={2}>{item.extracted.facts.join(' • ')}</Text>
-            ) : item.transcript ? (
-              <Text style={styles.snippet} numberOfLines={2}>{item.transcript}</Text>
-            ) : (
-              <Text style={styles.snippet}>No details captured.</Text>
-            )}
-          </Pressable>
+          <SwipeableRow onDelete={() => requestDelete(item, 'Capture deleted')}>
+            <Pressable style={styles.card} onPress={() => router.push(`/capture/${item.id}`)}>
+              {formatAnchors(item).map((line, i) => (
+                <Text key={i} style={i === 0 ? styles.date : styles.anchor}>{line}</Text>
+              ))}
+              {item.extracted.name ? <Text style={styles.name}>{item.extracted.name}</Text> : null}
+              {item.extracted.facts.length > 0 ? (
+                <Text style={styles.snippet} numberOfLines={2}>{item.extracted.facts.join(' • ')}</Text>
+              ) : item.transcript ? (
+                <Text style={styles.snippet} numberOfLines={2}>{item.transcript}</Text>
+              ) : (
+                <Text style={styles.snippet}>No details captured.</Text>
+              )}
+            </Pressable>
+          </SwipeableRow>
         )}
       />
+
+      {pending && <UndoSnackbar message={pending.message} onUndo={undo} />}
     </SafeAreaView>
   );
 }

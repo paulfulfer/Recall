@@ -1,16 +1,20 @@
 import { router } from 'expo-router';
 import { useCallback, useEffect, useMemo, useState } from 'react';
-import { FlatList, Pressable, RefreshControl, StyleSheet, Text, TextInput, View } from 'react-native';
+import { FlatList, RefreshControl, StyleSheet, Text, TextInput, View } from 'react-native';
+import { Pressable } from 'react-native-gesture-handler';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
 import { AvatarBadge } from '@/components/avatar-badge';
 import { CategoryTag } from '@/components/category-tag';
 import { ClosenessDots } from '@/components/closeness-dots';
 import { SkeletonBlock, SkeletonGroup } from '@/components/skeleton';
+import { SwipeableRow } from '@/components/swipeable-row';
+import { UndoSnackbar } from '@/components/undo-snackbar';
 import { CATEGORIES, type Category } from '@/constants/categories';
 import { LAYOUT, LORA, type ThemeTokens } from '@/constants/theme';
+import { usePendingDelete } from '@/hooks/use-pending-delete';
 import { daysUntilBirthday } from '@/lib/birthdays';
-import { listPeople, subscribeToPeople } from '@/lib/people';
+import { deletePerson, listPeople, subscribeToPeople } from '@/lib/people';
 import { useAuth } from '@/providers/auth-provider';
 import { useAppTheme } from '@/providers/theme-provider';
 import type { Person } from '@/types/models';
@@ -40,6 +44,7 @@ function PeopleList({ uid }: { uid: string }) {
   const [search, setSearch] = useState('');
   const [category, setCategory] = useState<Category | null>(null);
   const [sortMode, setSortMode] = useState<SortMode>('name');
+  const { pending, requestDelete, undo } = usePendingDelete<Person>((person) => deletePerson(uid, person.id));
 
   useEffect(
     () =>
@@ -76,6 +81,8 @@ function PeopleList({ uid }: { uid: string }) {
     });
     return result;
   }, [people, search, category, sortMode]);
+
+  const visiblePeople = pending ? filtered.filter((p) => p.id !== pending.item.id) : filtered;
 
   return (
     <SafeAreaView style={styles.flex} edges={['top']}>
@@ -117,7 +124,7 @@ function PeopleList({ uid }: { uid: string }) {
       </View>
 
       <FlatList
-        data={filtered}
+        data={visiblePeople}
         keyExtractor={(p) => p.id}
         contentContainerStyle={styles.listContent}
         refreshControl={
@@ -142,32 +149,36 @@ function PeopleList({ uid }: { uid: string }) {
           )
         }
         renderItem={({ item }) => (
-          <Pressable style={styles.row} onPress={() => router.push(`/person/${item.id}`)}>
-            <AvatarBadge
-              name={item.name}
-              category={item.category}
-              size={LAYOUT.avatarListSize}
-              radius={LAYOUT.avatarListRadius}
-              photoUrl={item.photoUrl}
-            />
-            <View style={styles.rowMain}>
-              <Text style={styles.name} numberOfLines={1}>{item.name}</Text>
-              <CategoryTag category={item.category} />
-              {item.facts.length > 0 && (
-                <Text style={styles.snippet} numberOfLines={1}>
-                  {item.facts[item.facts.length - 1]}
+          <SwipeableRow onDelete={() => requestDelete(item, `"${item.name}" deleted`)}>
+            <Pressable style={styles.row} onPress={() => router.push(`/person/${item.id}`)}>
+              <AvatarBadge
+                name={item.name}
+                category={item.category}
+                size={LAYOUT.avatarListSize}
+                radius={LAYOUT.avatarListRadius}
+                photoUrl={item.photoUrl}
+              />
+              <View style={styles.rowMain}>
+                <Text style={styles.name} numberOfLines={1}>{item.name}</Text>
+                <CategoryTag category={item.category} />
+                {item.facts.length > 0 && (
+                  <Text style={styles.snippet} numberOfLines={1}>
+                    {item.facts[item.facts.length - 1]}
+                  </Text>
+                )}
+              </View>
+              <View style={styles.rowMeta}>
+                <Text style={[styles.days, daysSince(item.lastContacted) >= STALE_CONTACT_DAYS && styles.daysStale]}>
+                  {daysSince(item.lastContacted) === 0 ? 'Today' : `${daysSince(item.lastContacted)}d ago`}
                 </Text>
-              )}
-            </View>
-            <View style={styles.rowMeta}>
-              <Text style={[styles.days, daysSince(item.lastContacted) >= STALE_CONTACT_DAYS && styles.daysStale]}>
-                {daysSince(item.lastContacted) === 0 ? 'Today' : `${daysSince(item.lastContacted)}d ago`}
-              </Text>
-              <ClosenessDots category={item.category} value={item.closeness} />
-            </View>
-          </Pressable>
+                <ClosenessDots category={item.category} value={item.closeness} />
+              </View>
+            </Pressable>
+          </SwipeableRow>
         )}
       />
+
+      {pending && <UndoSnackbar message={pending.message} onUndo={undo} />}
     </SafeAreaView>
   );
 }
