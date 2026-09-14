@@ -8,6 +8,7 @@ import { CategoryTag } from '@/components/category-tag';
 import { ClosenessDots } from '@/components/closeness-dots';
 import { CATEGORIES, type Category } from '@/constants/categories';
 import { LAYOUT, LORA, type ThemeTokens } from '@/constants/theme';
+import { daysUntilBirthday } from '@/lib/birthdays';
 import { subscribeToPeople } from '@/lib/people';
 import { useAuth } from '@/providers/auth-provider';
 import { useAppTheme } from '@/providers/theme-provider';
@@ -17,18 +18,6 @@ type SortMode = 'name' | 'birthday' | 'recent';
 
 function daysSince(iso: string): number {
   return Math.max(0, Math.floor((Date.now() - new Date(iso).getTime()) / 86_400_000));
-}
-
-// Lower is sooner. No birthday sorts last.
-function daysUntilBirthday(birthday: string | undefined): number {
-  if (!birthday) return Infinity;
-  const [month, day] = birthday.split('-').map(Number);
-  const now = new Date();
-  let next = new Date(now.getFullYear(), month - 1, day);
-  if (next.getTime() < now.setHours(0, 0, 0, 0)) {
-    next = new Date(now.getFullYear() + 1, month - 1, day);
-  }
-  return Math.round((next.getTime() - now.getTime()) / 86_400_000);
 }
 
 export default function PeopleScreen() {

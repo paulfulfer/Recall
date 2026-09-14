@@ -2,6 +2,7 @@ import { useMemo, useState } from 'react';
 import { Pressable, ScrollView, StyleSheet, Text, TextInput, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
+import { BirthdayBanner } from '@/components/birthday-banner';
 import { CaptureConfirm } from '@/components/capture-confirm';
 import { RecordButton } from '@/components/record-button';
 import { LORA, type ThemeTokens } from '@/constants/theme';
@@ -75,6 +76,8 @@ function RecordHome({ uid, email }: { uid: string; email: string | null }) {
     <SafeAreaView style={styles.flex}>
       <ScrollView contentContainerStyle={styles.content}>
         <Text style={styles.title}>Recall</Text>
+
+        <BirthdayBanner uid={uid} />
 
         <View style={styles.recordSection}>
           <RecordButton

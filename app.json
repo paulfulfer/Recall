@@ -52,7 +52,8 @@
         {
           "photosPermission": "Recall uses your photos to add a picture to a person's profile."
         }
-      ]
+      ],
+      "expo-notifications"
     ],
     "experiments": {
       "typedRoutes": true,
