@@ -1,11 +1,12 @@
 import { router } from 'expo-router';
 import { useCallback, useEffect, useMemo, useState } from 'react';
-import { ActivityIndicator, FlatList, Pressable, RefreshControl, StyleSheet, Text, TextInput, View } from 'react-native';
+import { FlatList, Pressable, RefreshControl, StyleSheet, Text, TextInput, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
 import { AvatarBadge } from '@/components/avatar-badge';
 import { CategoryTag } from '@/components/category-tag';
 import { ClosenessDots } from '@/components/closeness-dots';
+import { SkeletonBlock, SkeletonGroup } from '@/components/skeleton';
 import { CATEGORIES, type Category } from '@/constants/categories';
 import { LAYOUT, LORA, type ThemeTokens } from '@/constants/theme';
 import { daysUntilBirthday } from '@/lib/birthdays';
@@ -124,7 +125,18 @@ function PeopleList({ uid }: { uid: string }) {
         }
         ListEmptyComponent={
           loading ? (
-            <ActivityIndicator style={styles.loading} color={tokens.textTertiary} />
+            <SkeletonGroup style={{ gap: LAYOUT.listRowGap }}>
+              {[0, 1, 2, 3].map((i) => (
+                <View key={i} style={styles.row}>
+                  <SkeletonBlock width={LAYOUT.avatarListSize} height={LAYOUT.avatarListSize} radius={LAYOUT.avatarListRadius} />
+                  <View style={styles.rowMain}>
+                    <SkeletonBlock width="45%" height={13} />
+                    <SkeletonBlock width="70%" height={11} />
+                  </View>
+                  <SkeletonBlock width={36} height={11} />
+                </View>
+              ))}
+            </SkeletonGroup>
           ) : (
             <Text style={styles.empty}>No one here yet.</Text>
           )
@@ -229,7 +241,6 @@ function createStyles(t: ThemeTokens) {
     sortRow: { flexDirection: 'row', gap: 16, paddingBottom: 4 },
     listContent: { padding: 16, gap: LAYOUT.listRowGap },
     empty: { fontFamily: LORA.regular, fontSize: 14, color: t.textTertiary, textAlign: 'center', marginTop: 40 },
-    loading: { marginTop: 40 },
     row: {
       flexDirection: 'row',
       alignItems: 'center',

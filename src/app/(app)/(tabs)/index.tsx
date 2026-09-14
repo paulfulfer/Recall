@@ -1,9 +1,10 @@
 import { useMemo, useState } from 'react';
-import { ActivityIndicator, Pressable, ScrollView, StyleSheet, Text, TextInput, View } from 'react-native';
+import { Pressable, ScrollView, StyleSheet, Text, TextInput, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
 import { BirthdayBanner } from '@/components/birthday-banner';
 import { CaptureConfirm } from '@/components/capture-confirm';
+import { CaptureConfirmSkeleton } from '@/components/capture-confirm-skeleton';
 import { RecordButton } from '@/components/record-button';
 import { LORA, type ThemeTokens } from '@/constants/theme';
 import { useCaptureRecorder } from '@/hooks/use-capture-recorder';
@@ -72,6 +73,12 @@ function RecordHome({ uid }: { uid: string }) {
   }
 
   const busy = stage === 'uploading' || stage === 'transcribing' || stage === 'extracting';
+  if (busy) {
+    // Same spot CaptureConfirm will mount once the pipeline finishes — a skeleton of that
+    // screen reads as clearer progress than a small spinner buried in the record footer.
+    return <CaptureConfirmSkeleton />;
+  }
+
   const seconds = Math.floor(durationMillis / 1000);
 
   return (
@@ -134,7 +141,6 @@ function RecordHome({ uid }: { uid: string }) {
           onPress={() => (isRecording ? stopRecording() : startRecording())}
         />
         <View style={styles.stageRow}>
-          {busy && <ActivityIndicator size="small" color={tokens.textSecondary} />}
           <Text style={styles.stageLabel}>{stageLabel(stage)}</Text>
         </View>
         {isRecording && <Text style={styles.timer}>{seconds}s / 60s</Text>}

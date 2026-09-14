@@ -1,11 +1,12 @@
 import { router, useLocalSearchParams } from 'expo-router';
 import { useEffect, useMemo, useRef, useState } from 'react';
-import { ActivityIndicator, Pressable, ScrollView, StyleSheet, Text, TextInput, View } from 'react-native';
+import { Pressable, ScrollView, StyleSheet, Text, TextInput, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
 import { AvatarBadge } from '@/components/avatar-badge';
 import { CategoryTag } from '@/components/category-tag';
 import { ClosenessDots } from '@/components/closeness-dots';
+import { SkeletonBlock, SkeletonGroup } from '@/components/skeleton';
 import { SwipeableRow } from '@/components/swipeable-row';
 import { CATEGORY_FIELDS } from '@/constants/categories';
 import { LAYOUT, LORA, type ThemeTokens } from '@/constants/theme';
@@ -80,7 +81,22 @@ function PersonDetail({ uid, personId }: { uid: string; personId: string }) {
   if (person === undefined) {
     return (
       <SafeAreaView style={styles.flex}>
-        <ActivityIndicator style={styles.loading} color={tokens.textTertiary} />
+        <SkeletonGroup style={styles.content}>
+          <View style={styles.profileHeader}>
+            <SkeletonBlock width={LAYOUT.avatarDetailSize} height={LAYOUT.avatarDetailSize} radius={LAYOUT.avatarDetailRadius} />
+            <View style={styles.profileText}>
+              <SkeletonBlock width={140} height={16} />
+              <SkeletonBlock width={70} height={11} />
+            </View>
+          </View>
+          {[0, 1, 2].map((i) => (
+            <View key={i} style={styles.card}>
+              <SkeletonBlock width={60} height={10} />
+              <SkeletonBlock width="85%" height={13} />
+              <SkeletonBlock width="55%" height={13} />
+            </View>
+          ))}
+        </SkeletonGroup>
       </SafeAreaView>
     );
   }
@@ -281,7 +297,6 @@ function createStyles(t: ThemeTokens) {
     headerRow: { flexDirection: 'row', justifyContent: 'space-between' },
     back: { fontFamily: LORA.medium, fontSize: 14, color: t.contactLink },
     notFound: { fontFamily: LORA.regular, fontSize: 14, color: t.textSecondary, textAlign: 'center', marginTop: 40 },
-    loading: { marginTop: 40 },
     profileHeader: { flexDirection: 'row', alignItems: 'center', gap: 14, marginBottom: 4 },
     profileText: { gap: 4 },
     name: { fontFamily: LORA.semiBold, fontSize: 18, color: t.textPrimary },
