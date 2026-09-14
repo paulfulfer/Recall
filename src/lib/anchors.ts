@@ -45,20 +45,14 @@ export async function captureAnchors(): Promise<CaptureAnchors> {
   }
 
   try {
-    const { status } = await withTimeout(Calendar.requestCalendarPermissionsAsync());
+    const { status } = await withTimeout(Calendar.requestCalendarPermissions());
     if (status === "granted") {
-      const calendars = await withTimeout(Calendar.getCalendarsAsync(Calendar.EntityTypes.EVENT));
+      const calendars = await withTimeout(Calendar.getCalendars(Calendar.EntityTypes.EVENT));
       const now = new Date();
       const windowStart = new Date(now.getTime() - 30 * 60 * 1000);
       const windowEnd = new Date(now.getTime() + 30 * 60 * 1000);
-      const events = await withTimeout(
-        Calendar.getEventsAsync(
-          calendars.map((c) => c.id),
-          windowStart,
-          windowEnd,
-        ),
-      );
-      if (events.length > 0) {
+      const events = await withTimeout(Calendar.listEvents(calendars, windowStart, windowEnd));
+      if (events.length > 0 && events[0].title) {
         anchors.calendarEvent = events[0].title;
       }
     }

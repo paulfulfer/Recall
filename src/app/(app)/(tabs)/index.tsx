@@ -30,13 +30,12 @@ function stageLabel(stage: string) {
 export default function HomeScreen() {
   const { user } = useAuth();
   if (!user) return null;
-  return <RecordHome uid={user.uid} email={user.email} />;
+  return <RecordHome uid={user.uid} />;
 }
 
-function RecordHome({ uid, email }: { uid: string; email: string | null }) {
+function RecordHome({ uid }: { uid: string }) {
   const { tokens } = useAppTheme();
   const styles = useMemo(() => createStyles(tokens), [tokens]);
-  const { signOut } = useAuth();
   const {
     stage,
     captureId,
@@ -109,12 +108,6 @@ function RecordHome({ uid, email }: { uid: string; email: string | null }) {
             <Text style={styles.typedButtonText}>Log it</Text>
           </Pressable>
         </View>
-
-        {/* TEMP: real sign-out lands in the Settings screen (build phase 14) */}
-        <Text style={styles.email}>{email}</Text>
-        <Pressable onPress={() => signOut()}>
-          <Text style={styles.signOut}>Sign out</Text>
-        </Pressable>
       </ScrollView>
     </SafeAreaView>
   );
@@ -162,7 +155,5 @@ function createStyles(t: ThemeTokens) {
     },
     typedButtonDisabled: { opacity: 0.5 },
     typedButtonText: { fontFamily: LORA.semiBold, fontSize: 14, color: t.pillPrimaryText },
-    email: { fontFamily: LORA.regular, fontSize: 12, color: t.textTertiary, marginTop: 8 },
-    signOut: { fontFamily: LORA.medium, fontSize: 13, color: t.contactLink },
   });
 }
