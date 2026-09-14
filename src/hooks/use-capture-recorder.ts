@@ -43,8 +43,8 @@ const extractCaptureCallable = httpsCallable<
 // record or type, transcribe (voice only), extract — and hands the result to the
 // confirm/edit screen (step 6), which is the only thing allowed to commit a Person.
 export function useCaptureRecorder(uid: string) {
-  const recorder = useAudioRecorder(RecordingPresets.HIGH_QUALITY);
-  const recorderState = useAudioRecorderState(recorder, 200);
+  const recorder = useAudioRecorder({ ...RecordingPresets.HIGH_QUALITY, isMeteringEnabled: true });
+  const recorderState = useAudioRecorderState(recorder, 100);
   const [stage, setStage] = useState<CaptureStage>("idle");
   const [captureId, setCaptureId] = useState<string | null>(null);
   const [transcript, setTranscript] = useState<string>("");
@@ -216,6 +216,7 @@ export function useCaptureRecorder(uid: string) {
     retry,
     isRecording: recorderState.isRecording,
     durationMillis: recorderState.durationMillis,
+    metering: recorderState.metering,
     startRecording,
     stopRecording,
     submitTypedCapture,

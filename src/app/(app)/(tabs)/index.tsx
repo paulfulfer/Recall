@@ -46,6 +46,7 @@ function RecordHome({ uid }: { uid: string }) {
     retry,
     isRecording,
     durationMillis,
+    metering,
     startRecording,
     stopRecording,
     submitTypedCapture,
@@ -84,6 +85,7 @@ function RecordHome({ uid }: { uid: string }) {
           <RecordButton
             recording={isRecording}
             disabled={busy}
+            metering={metering}
             onPress={() => (isRecording ? stopRecording() : startRecording())}
           />
           <View style={styles.stageRow}>
