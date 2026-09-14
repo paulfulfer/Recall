@@ -1,19 +1,24 @@
 import { router, useLocalSearchParams } from 'expo-router';
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import { ActivityIndicator, Pressable, ScrollView, StyleSheet, Text, TextInput, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
 import { AvatarBadge } from '@/components/avatar-badge';
 import { CategoryTag } from '@/components/category-tag';
 import { ClosenessDots } from '@/components/closeness-dots';
+import { SwipeableRow } from '@/components/swipeable-row';
 import { CATEGORY_FIELDS } from '@/constants/categories';
 import { LAYOUT, LORA, type ThemeTokens } from '@/constants/theme';
 import { openEmail, openInstagram, openLinkedIn, openPhone } from '@/lib/contact-links';
 import { subscribeToCapturesForPerson } from '@/lib/captures';
-import { addPersonNote, subscribeToPerson, updatePerson } from '@/lib/people';
+import { addPersonNote, removePersonFact, removePersonNote, subscribeToPerson, updatePerson } from '@/lib/people';
 import { useAuth } from '@/providers/auth-provider';
 import { useAppTheme } from '@/providers/theme-provider';
 import type { Capture, Person } from '@/types/models';
+
+const UNDO_WINDOW_MS = 5000;
+
+type PendingDelete = { kind: 'fact'; value: string } | { kind: 'note'; note: { date: string; text: string } };
 
 export default function PersonDetailScreen() {
   const { id } = useLocalSearchParams<{ id: string }>();
@@ -30,9 +35,47 @@ function PersonDetail({ uid, personId }: { uid: string; personId: string }) {
   const [captures, setCaptures] = useState<Capture[]>([]);
   const [noteText, setNoteText] = useState('');
   const [expanded, setExpanded] = useState<Set<string>>(new Set());
+  const [pending, setPending] = useState<PendingDelete | null>(null);
+  const pendingTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+  // Mirrors `pending` so the unmount effect below (which only runs once, per its empty
+  // deps) can read the latest value instead of the stale one from its first render.
+  const pendingRef = useRef<PendingDelete | null>(null);
+  pendingRef.current = pending;
 
   useEffect(() => subscribeToPerson(uid, personId, setPerson), [uid, personId]);
   useEffect(() => subscribeToCapturesForPerson(uid, personId, setCaptures), [uid, personId]);
+  // Any pending delete still waiting out its undo window when the screen unmounts should
+  // still land — otherwise navigating away right after a swipe would silently keep the item.
+  useEffect(
+    () => () => {
+      if (pendingTimer.current) clearTimeout(pendingTimer.current);
+      if (pendingRef.current) commitDelete(pendingRef.current);
+    },
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [],
+  );
+
+  function commitDelete(target: PendingDelete) {
+    if (target.kind === 'fact') removePersonFact(uid, personId, target.value);
+    else removePersonNote(uid, personId, target.note);
+  }
+
+  function requestDelete(target: PendingDelete) {
+    if (pendingTimer.current) clearTimeout(pendingTimer.current);
+    if (pending) commitDelete(pending);
+    setPending(target);
+    pendingTimer.current = setTimeout(() => {
+      commitDelete(target);
+      setPending(null);
+      pendingTimer.current = null;
+    }, UNDO_WINDOW_MS);
+  }
+
+  function undoDelete() {
+    if (pendingTimer.current) clearTimeout(pendingTimer.current);
+    pendingTimer.current = null;
+    setPending(null);
+  }
 
   if (person === undefined) {
     return (
@@ -152,14 +195,34 @@ function PersonDetail({ uid, personId }: { uid: string; personId: string }) {
           />
         </View>
 
+        {person.facts.length > 0 && (
+          <View style={styles.card}>
+            <Text style={styles.label}>Facts</Text>
+            {person.facts
+              .filter((f) => !(pending?.kind === 'fact' && pending.value === f))
+              .map((f, i) => (
+                <SwipeableRow key={`${f}-${i}`} onDelete={() => requestDelete({ kind: 'fact', value: f })}>
+                  <View style={styles.factRow}>
+                    <Text style={styles.body}>• {f}</Text>
+                  </View>
+                </SwipeableRow>
+              ))}
+          </View>
+        )}
+
         <View style={styles.card}>
           <Text style={styles.label}>Notes</Text>
-          {[...person.notes].reverse().map((n, i) => (
-            <View key={`${n.date}-${i}`} style={styles.noteRow}>
-              <Text style={styles.noteDate}>{new Date(n.date).toLocaleDateString()}</Text>
-              <Text style={styles.body}>{n.text}</Text>
-            </View>
-          ))}
+          {[...person.notes]
+            .reverse()
+            .filter((n) => !(pending?.kind === 'note' && pending.note.date === n.date && pending.note.text === n.text))
+            .map((n, i) => (
+              <SwipeableRow key={`${n.date}-${i}`} onDelete={() => requestDelete({ kind: 'note', note: n })}>
+                <View style={styles.noteRow}>
+                  <Text style={styles.noteDate}>{new Date(n.date).toLocaleDateString()}</Text>
+                  <Text style={styles.body}>{n.text}</Text>
+                </View>
+              </SwipeableRow>
+            ))}
           <View style={styles.addRow}>
             <TextInput
               value={noteText}
@@ -197,6 +260,15 @@ function PersonDetail({ uid, personId }: { uid: string; personId: string }) {
           })}
         </View>
       </ScrollView>
+
+      {pending && (
+        <View style={styles.snackbar}>
+          <Text style={styles.snackbarText}>{pending.kind === 'fact' ? 'Fact deleted' : 'Note deleted'}</Text>
+          <Pressable onPress={undoDelete} hitSlop={8}>
+            <Text style={styles.snackbarUndo}>Undo</Text>
+          </Pressable>
+        </View>
+      )}
     </SafeAreaView>
   );
 }
@@ -228,8 +300,21 @@ function createStyles(t: ThemeTokens) {
     contactValue: { fontFamily: LORA.medium, fontSize: 14, color: t.contactLink },
     dateRow: { fontFamily: LORA.regular, fontSize: 14, color: t.textPrimary },
     body: { fontFamily: LORA.regular, fontSize: 14, lineHeight: 21.7, color: t.textPrimary },
-    noteRow: { gap: 2, paddingBottom: 6 },
+    factRow: { paddingVertical: 4, backgroundColor: t.card },
+    noteRow: { gap: 2, paddingVertical: 4, backgroundColor: t.card },
     noteDate: { fontFamily: LORA.medium, fontSize: 11.5, color: t.textTertiary },
+    snackbar: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      justifyContent: 'space-between',
+      backgroundColor: t.card,
+      borderTopWidth: StyleSheet.hairlineWidth,
+      borderTopColor: t.cardBorder,
+      paddingHorizontal: 20,
+      paddingVertical: 14,
+    },
+    snackbarText: { fontFamily: LORA.regular, fontSize: 13.5, color: t.textPrimary },
+    snackbarUndo: { fontFamily: LORA.semiBold, fontSize: 13.5, color: t.contactLink },
     addRow: { flexDirection: 'row', gap: 8, alignItems: 'center' },
     input: {
       backgroundColor: t.inputBg,

@@ -10,6 +10,7 @@ import * as SplashScreen from 'expo-splash-screen';
 import { StatusBar } from 'expo-status-bar';
 import { useEffect } from 'react';
 import { useColorScheme } from 'react-native';
+import { GestureHandlerRootView } from 'react-native-gesture-handler';
 
 import { AnimatedSplashOverlay } from '@/components/animated-icon';
 import { AuthProvider, useAuth } from '@/providers/auth-provider';
@@ -47,19 +48,21 @@ function RootLayoutNav({ fontsLoaded }: { fontsLoaded: boolean }) {
   if (!ready) return null;
 
   return (
-    <NavigationThemeProvider value={colorScheme === 'dark' ? DarkTheme : DefaultTheme}>
-      {/* Recall's own theme toggle (mode) drives this, not the device color scheme —
-          the app defaults to dark regardless of system setting (spec section 7). */}
-      <StatusBar style={mode === 'dark' ? 'light' : 'dark'} />
-      <AnimatedSplashOverlay />
-      <Stack screenOptions={{ headerShown: false }}>
-        <Stack.Protected guard={!!user}>
-          <Stack.Screen name="(app)" />
-        </Stack.Protected>
-        <Stack.Protected guard={!user}>
-          <Stack.Screen name="sign-in" />
-        </Stack.Protected>
-      </Stack>
-    </NavigationThemeProvider>
+    <GestureHandlerRootView style={{ flex: 1 }}>
+      <NavigationThemeProvider value={colorScheme === 'dark' ? DarkTheme : DefaultTheme}>
+        {/* Recall's own theme toggle (mode) drives this, not the device color scheme —
+            the app defaults to dark regardless of system setting (spec section 7). */}
+        <StatusBar style={mode === 'dark' ? 'light' : 'dark'} />
+        <AnimatedSplashOverlay />
+        <Stack screenOptions={{ headerShown: false }}>
+          <Stack.Protected guard={!!user}>
+            <Stack.Screen name="(app)" />
+          </Stack.Protected>
+          <Stack.Protected guard={!user}>
+            <Stack.Screen name="sign-in" />
+          </Stack.Protected>
+        </Stack>
+      </NavigationThemeProvider>
+    </GestureHandlerRootView>
   );
 }

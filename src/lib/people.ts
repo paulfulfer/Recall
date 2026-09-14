@@ -1,4 +1,5 @@
 import {
+  arrayRemove,
   arrayUnion,
   collection,
   deleteField,
@@ -114,6 +115,24 @@ export async function addPersonFacts(uid: string, personId: string, facts: strin
   if (facts.length === 0) return;
   await updateDoc(personDoc(uid, personId), {
     facts: arrayUnion(...facts),
+    updatedAt: new Date().toISOString(),
+  });
+}
+
+export async function removePersonFact(uid: string, personId: string, fact: string): Promise<void> {
+  await updateDoc(personDoc(uid, personId), {
+    facts: arrayRemove(fact),
+    updatedAt: new Date().toISOString(),
+  });
+}
+
+export async function removePersonNote(
+  uid: string,
+  personId: string,
+  note: { date: string; text: string },
+): Promise<void> {
+  await updateDoc(personDoc(uid, personId), {
+    notes: arrayRemove(note),
     updatedAt: new Date().toISOString(),
   });
 }
