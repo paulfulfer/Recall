@@ -51,7 +51,23 @@ export function PersonForm({ uid, initial, onSaved, onCancel }: PersonFormProps)
     [initial, existingPeople, name],
   );
 
-  async function pickPhoto() {
+  async function takePhoto() {
+    const permission = await ImagePicker.requestCameraPermissionsAsync();
+    if (!permission.granted) {
+      setError('Camera permission is required to take a picture.');
+      return;
+    }
+    const result = await ImagePicker.launchCameraAsync({
+      allowsEditing: true,
+      aspect: [1, 1],
+      quality: 0.8,
+    });
+    if (!result.canceled && result.assets[0]) {
+      setPhotoUri(result.assets[0].uri);
+    }
+  }
+
+  async function chooseFromLibrary() {
     const permission = await ImagePicker.requestMediaLibraryPermissionsAsync();
     if (!permission.granted) {
       setError('Photo library permission is required to add a picture.');
@@ -143,7 +159,7 @@ export function PersonForm({ uid, initial, onSaved, onCancel }: PersonFormProps)
       </View>
 
       <View style={styles.card}>
-        <Pressable onPress={pickPhoto} style={styles.photoPicker}>
+        <View style={styles.photoPicker}>
           {previewUri ? (
             <Image source={{ uri: previewUri }} style={styles.photo} contentFit="cover" />
           ) : (
@@ -151,7 +167,15 @@ export function PersonForm({ uid, initial, onSaved, onCancel }: PersonFormProps)
               <Text style={styles.photoPlaceholderText}>Add photo</Text>
             </View>
           )}
-        </Pressable>
+        </View>
+        <View style={styles.photoActions}>
+          <Pressable onPress={takePhoto} style={styles.photoActionButton}>
+            <Text style={styles.photoActionText}>Take photo</Text>
+          </Pressable>
+          <Pressable onPress={chooseFromLibrary} style={styles.photoActionButton}>
+            <Text style={styles.photoActionText}>Choose from library</Text>
+          </Pressable>
+        </View>
       </View>
 
       <View style={styles.card}>
@@ -308,6 +332,15 @@ function createStyles(t: ThemeTokens) {
       justifyContent: 'center',
     },
     photoPlaceholderText: { fontFamily: LORA.medium, fontSize: 12, color: t.textTertiary },
+    photoActions: { flexDirection: 'row', justifyContent: 'center', gap: 8, marginTop: 12 },
+    photoActionButton: {
+      borderWidth: 1,
+      borderColor: t.cardBorder,
+      borderRadius: 999,
+      paddingHorizontal: 14,
+      paddingVertical: 8,
+    },
+    photoActionText: { fontFamily: LORA.medium, fontSize: 12.5, color: t.textSecondary },
     error: { fontFamily: LORA.regular, fontSize: 13, color: t.reminderText, textAlign: 'center' },
     duplicateWarning: { fontFamily: LORA.regular, fontSize: 12.5, color: t.reminderText },
     saveButton: { backgroundColor: t.pillPrimaryBg, borderRadius: 999, paddingVertical: 14, alignItems: 'center' },

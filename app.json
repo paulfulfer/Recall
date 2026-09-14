@@ -62,7 +62,8 @@
       [
         "expo-image-picker",
         {
-          "photosPermission": "Recall uses your photos to add a picture to a person's profile."
+          "photosPermission": "Recall uses your photos to add a picture to a person's profile.",
+          "cameraPermission": "Recall uses your camera to take a picture for a person's profile."
         }
       ],
       "expo-notifications"
