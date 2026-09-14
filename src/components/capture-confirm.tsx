@@ -276,6 +276,14 @@ export function CaptureConfirm({ uid, captureId, transcript, initialExtracted, o
               </Text>
             </Pressable>
           </View>
+
+          {saveMode === 'create' && matches.length > 0 && (
+            <Text style={styles.duplicateWarning}>
+              {matches.length === 1
+                ? `You already have "${matches[0].name}" saved — attach above instead if this is the same person.`
+                : `You already have ${matches.length} people with similar names — attach above instead if this is the same person.`}
+            </Text>
+          )}
         </View>
   
         {saveError ? <Text style={styles.error}>{saveError}</Text> : null}
@@ -346,6 +354,7 @@ function createStyles(t: ThemeTokens) {
     modeButtonText: { fontFamily: LORA.medium, fontSize: 12.5, color: t.textSecondary },
     modeButtonTextActive: { color: t.pillPrimaryText },
     error: { fontFamily: LORA.regular, fontSize: 13, color: t.reminderText, textAlign: 'center' },
+    duplicateWarning: { fontFamily: LORA.regular, fontSize: 12.5, color: t.reminderText, marginTop: 4 },
     saveButton: {
       backgroundColor: t.pillPrimaryBg,
       borderRadius: 999,

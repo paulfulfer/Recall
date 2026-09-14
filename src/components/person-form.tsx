@@ -1,11 +1,11 @@
 import { Image } from 'expo-image';
 import * as ImagePicker from 'expo-image-picker';
-import { useMemo, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { Pressable, ScrollView, StyleSheet, Text, TextInput, View } from 'react-native';
 
 import { CATEGORIES, CATEGORY_FIELDS, type Category } from '@/constants/categories';
 import { CATEGORY_ACCENTS, LORA, type ThemeTokens } from '@/constants/theme';
-import { createPerson, savePersonOptionalFields, updatePerson } from '@/lib/people';
+import { createPerson, listPeople, matchPeopleByName, savePersonOptionalFields, updatePerson } from '@/lib/people';
 import { uploadPersonPhoto } from '@/lib/storage';
 import { useAppTheme } from '@/providers/theme-provider';
 import type { Person } from '@/types/models';
@@ -35,8 +35,21 @@ export function PersonForm({ uid, initial, onSaved, onCancel }: PersonFormProps)
   const [photoUri, setPhotoUri] = useState<string | null>(null);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [existingPeople, setExistingPeople] = useState<Person[]>([]);
 
   const categoryFields = category ? CATEGORY_FIELDS[category] : [];
+
+  // Spec polish phase 6: only relevant when creating someone new — editing an existing
+  // person's own name obviously shouldn't warn about matching themselves.
+  useEffect(() => {
+    if (initial) return;
+    listPeople(uid).then(setExistingPeople).catch(() => {});
+  }, [uid, initial]);
+
+  const duplicateMatches = useMemo(
+    () => (initial ? [] : matchPeopleByName(existingPeople, name)),
+    [initial, existingPeople, name],
+  );
 
   async function pickPhoto() {
     const permission = await ImagePicker.requestMediaLibraryPermissionsAsync();
@@ -150,6 +163,13 @@ export function PersonForm({ uid, initial, onSaved, onCancel }: PersonFormProps)
           placeholderTextColor={tokens.textTertiary}
           style={styles.input}
         />
+        {duplicateMatches.length > 0 && (
+          <Text style={styles.duplicateWarning}>
+            {duplicateMatches.length === 1
+              ? `You already have "${duplicateMatches[0].name}" saved — this might be a duplicate.`
+              : `You already have ${duplicateMatches.length} people with similar names — this might be a duplicate.`}
+          </Text>
+        )}
       </View>
 
       <View style={styles.card}>
@@ -289,6 +309,7 @@ function createStyles(t: ThemeTokens) {
     },
     photoPlaceholderText: { fontFamily: LORA.medium, fontSize: 12, color: t.textTertiary },
     error: { fontFamily: LORA.regular, fontSize: 13, color: t.reminderText, textAlign: 'center' },
+    duplicateWarning: { fontFamily: LORA.regular, fontSize: 12.5, color: t.reminderText },
     saveButton: { backgroundColor: t.pillPrimaryBg, borderRadius: 999, paddingVertical: 14, alignItems: 'center' },
     saveButtonDisabled: { opacity: 0.6 },
     saveButtonText: { fontFamily: LORA.semiBold, fontSize: 15, color: t.pillPrimaryText },
